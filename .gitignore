@@ -1,0 +1,6 @@
+# Ignore NS-3 build artifacts and cache
+ns-allinone-3.39/ns-3.39/build/
+ns-allinone-3.39/ns-3.39/cmake-cache/
+*.so
+*.o
+*.gch

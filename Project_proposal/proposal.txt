@@ -1,0 +1,230 @@
+Project Overview
+
+Title: Energy and Mobility-Aware Routing for Disaster Response Drone Networks (FANETs) - NS-3 Project Proposal: Implementing Fitness Function Routing Author: Mosharaf Hossain Apurbo, Department of Computer Science & Engineering (BUET) Date: February 8, 2026 
++3
+
+1. Introduction: The Scenario
+
+Real-Life Application: The project focuses on a disaster response scenario where a natural disaster has destroyed the existing ground infrastructure.
+
+
+Proposed Solution: To establish communication, a swarm of Unmanned Aerial Vehicles (UAVs) is deployed to create a Flying Ad-Hoc Network (FANET).
+
+
+Primary Goal: The network must relay live video footage from the search area back to a remote Base Station.
+
+
+The Constraint: Standard routing protocols, such as AODV, blindly select the shortest path for data transmission. This approach ignores drone speed and drains the battery life of specific "central" nodes, leading to frequent link ruptures and ultimately, mission failure.
++1
+
+2. Problem Statement
+The primary flaw in standard AODV routing is that it utilizes Hop Count as its only metric.
+
+
+Flawed Decision Making: Standard AODV would decide that a 3-hop path moving away at 50 m/s is superior to a 4-hop path where drones are hovering efficiently.
+
+
+Consequences: * Critical nodes experience energy depletion and die prematurely.
+
+Fast-moving nodes cause route instability by breaking links immediately.
+
+The network experiences high packet loss when it is forced to constantly reconstruct routes.
+
+3. Project Roadmap: Core vs. Extension
+This project proposes a robust implementation based on the fitness function methodology introduced by Taha et al., which is then extended with mobility awareness to better suit FANET environments.
+
+Phase 1: The Core Target (Reproduction)
+
+
+Fitness Function AODV (FF-AODV): The goal is to replace the traditional "Shortest Path" logic with a multi-metric "Fitness Function".
+
+
+Logic: A score (F) is calculated by combining Residual Energy and Distance metrics.
+
+
+Status: This serves as the base implementation derived from Taha et al..
+
+Phase 2: Custom Modification (Mobility-Aware)
+
+
+Velocity-Aware Optimization: The baseline methodology by Taha et al. does not account for the speed of the nodes.
+
+
+Solution: The fitness function will be extended to penalize nodes moving at high velocities.
+
+4. Methodology: Fitness Function (The Math)
+Relying on the approach by Taha et al., a "Fitness Score" (F) is defined for every available route option.
+
+
+The Base Formula (Phase 1): The objective is to maximize the score F:
+
+
+F=α× 
+E 
+initial
+​
+ 
+E 
+residual
+​
+ 
+​
+ +β× 
+HopCount
+1
+​
+ 
+
+
+
+α (Alpha): Represents the weight for Energy (e.g., 0.6).
+
+
+β (Beta): Represents the weight for Distance (e.g., 0.4).
+
+
+The Algorithm Change: * In standard AODV, a route is updated if the new hop count is less than the old hop count.
+
+In FF-AODV, a route is updated if the new fitness score (F 
+new
+​
+ ) is strictly greater than the old fitness score (F 
+old
+​
+ ).
+
+5. Methodology: Custom Modification (Velocity)
+For Phase 2, a Normalized Velocity Factor is introduced to accommodate the high-speed nature of FANETs.
+
+Velocity-Aware Fitness Function:
+A third parameter, γ (Gamma), is added to calculate a stability score:
+
+
+F 
+new
+​
+ =F 
+base
+​
+ +γ×( 
+V 
+max
+​
+ 
+V 
+max
+​
+ −V 
+current
+​
+ 
+​
+ )
+(Note: If the current velocity is 0, meaning the drone is hovering, the score is maximized to 1.0).
++1
+
+Integration Logic:
+
+
+Step 1: A Route Request (RREQ) arrives at a given node.
+
+
+Step 2: The node compares its own current speed against the Maximum Speed.
+
+
+Step 3: A Stability Score is calculated, where faster nodes receive lower scores.
+
+
+Step 4: The routing table is updated only if the newly proposed path provides the optimal balance of Energy, Distance, AND Stability.
+
+6. Implementation Details (ns-3)
+The project requires modifying the C++ source code located in src/aodv.
+
+
+Step 1: Energy & Mobility Awareness 
+
+Install the BasicEnergySource onto the nodes.
+
+Access MobilityModel::GetVelocity() to retrieve real-time speed data.
+
+
+Step 2: Modify Route Request (RREQ) 
+
+
+File: aodv-packet.h.
+
+Add the fields m_pathFitness and m_velocity directly to the header.
+
+Intermediate nodes must update these fields as the RREQ travels through the network.
+
+
+Step 3: Decision Logic 
+
+
+File: aodv-routing-protocol.cc.
+
+Within RecvRequest(): Retrieve the velocity norm, calculate the new fitness utilizing Energy, Hops, and velocity, and update the route if the new fitness exceeds the stored fitness.
+
+7. Evaluation Strategy
+The simulation will compare Standard AODV against FF-AODV using three key performance metrics:
+
+
+Network Lifetime: This measures the time elapsed until the very first node dies. The hypothesis is that FF-AODV will significantly outlast Standard AODV because it balances the network load.
++1
+
+
+Packet Delivery Ratio: This tracks the percentage of successful video packets delivered. The goal is to maintain high reliability by actively avoiding fast-moving, unstable nodes.
++1
+
+
+Average Throughput: This measures the rate of successful data delivery over the communication channel in Kbps.
++1
+
+8. Simulation Parameters
+The proposed simulation setup uses the following parameters:
++1
+
+
+Simulator: ns-3 (Latest Version) 
++1
+
+
+Area: 1000m x 1000m (Disaster Zone) 
++2
+
+
+Number of Nodes: 30 UAVs 
++1
+
+
+Mobility Model: Gauss-Markov (Random Flight) 
++2
+
+
+Traffic Type: UDP (Video Stream) 
++1
+
+
+Initial Energy: 100 Joules 
+
+
+Weights (α, β, γ): 0.5, 0.3, 0.2 
+
+9. Expected Outcomes
+
+Outcome 1: Successfully achieving a working "Fitness Function" integrated inside the ns-3 AODV module (Phase 1).
+
+
+Outcome 2: Generating validated results that demonstrate increased Network Lifetime and effective load balancing, where traffic actively moves away from nodes with low batteries.
+
+
+Outcome 3 (Custom Mod): Proving an improved Packet Delivery Ratio in scenarios with high-mobility (20-50 m/s) by successfully avoiding unstable and high-velocity nodes.
+
+References
+[1] A. Taha, R. Alsaqour, M. Uddin, M. Abdelhaq and T. Saba, "Energy Efficient Multipath Routing Protocol for Mobile Ad-Hoc Network Using the Fitness Function," IEEE Access, vol. 5, pp. 10369-10381, 2017.
+
+[2] ns-3 Consortium, "ns-3 Network Simulator," https://www.nsnam.org/.
+
+[3] H. Yang and Z. Liu, "An optimization routing protocol for FANETS," EURASIP Journal on Wireless Communications and Networking, vol. 2019, no. 120, 2019 (Referenced for FANET mobility challenges).
+
+Would you like me to help you draft an email to a professor or team member to share this extracted text?

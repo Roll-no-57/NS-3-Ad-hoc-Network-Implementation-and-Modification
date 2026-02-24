@@ -76,3 +76,18 @@ build_example(
     ${libinternet}
     ${libapplications}
 )
+
+build_example(
+  NAME test-ff-aodv
+  SOURCE_FILES test-ff-aodv.cc
+  LIBRARIES_TO_LINK
+    ${libcore}
+    ${libnetwork}
+    ${libinternet}
+    ${libwifi}
+    ${libmobility}
+    ${libapplications}
+    ${libenergy}
+    ${libaodv}
+    ${libflow-monitor}
+)

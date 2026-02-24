@@ -20,6 +20,7 @@ build_lib(
     model/aodv-rtable.h
   LIBRARIES_TO_LINK ${libinternet}
                     ${libwifi}
+                    ${libenergy}
   TEST_SOURCES
     test/aodv-id-cache-test-suite.cc
     test/aodv-regression.cc

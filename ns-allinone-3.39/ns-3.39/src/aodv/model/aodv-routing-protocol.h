@@ -503,6 +503,14 @@ class RoutingProtocol : public Ipv4RoutingProtocol
     Ptr<UniformRandomVariable> m_uniformRandomVariable;
     /// Keep track of the last bcast time
     Time m_lastBcastTime;
+
+    // FF-AODV: fitness function weights
+    double m_alpha;         ///< Weight for energy component (default 0.6)
+    double m_beta;          ///< Weight for hop count component (default 0.4)
+    double m_initialEnergy; ///< Initial energy of each node in Joules
+
+    // FF-AODV: compute fitness score for a path
+    double CalculateFitness(double residualEnergy, uint8_t hopCount) const;
 };
 
 } // namespace aodv

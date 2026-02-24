@@ -62,7 +62,8 @@ RoutingTableEntry::RoutingTableEntry(Ptr<NetDevice> dev,
       m_flag(VALID),
       m_reqCount(0),
       m_blackListState(false),
-      m_blackListTimeout(Simulator::Now())
+      m_blackListTimeout(Simulator::Now()),
+      m_fitness(0.0)
 {
     m_ipv4Route = Create<Ipv4Route>();
     m_ipv4Route->SetDestination(dst);

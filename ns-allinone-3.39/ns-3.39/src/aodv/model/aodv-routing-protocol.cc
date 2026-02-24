@@ -34,6 +34,9 @@
 
 #include "ns3/adhoc-wifi-mac.h"
 #include "ns3/boolean.h"
+#include "ns3/double.h"
+#include "ns3/energy-source-container.h"
+#include "ns3/energy-source.h"
 #include "ns3/inet-socket-address.h"
 #include "ns3/log.h"
 #include "ns3/pointer.h"
@@ -178,7 +181,10 @@ RoutingProtocol::RoutingProtocol()
       m_htimer(Timer::CANCEL_ON_DESTROY),
       m_rreqRateLimitTimer(Timer::CANCEL_ON_DESTROY),
       m_rerrRateLimitTimer(Timer::CANCEL_ON_DESTROY),
-      m_lastBcastTime(Seconds(0))
+      m_lastBcastTime(Seconds(0)),
+      m_alpha(0.6),
+      m_beta(0.4),
+      m_initialEnergy(100.0)
 {
     m_nb.SetCallback(MakeCallback(&RoutingProtocol::SendRerrWhenBreaksLinkToNextHop, this));
 }
@@ -336,7 +342,23 @@ RoutingProtocol::GetTypeId()
                           "Access to the underlying UniformRandomVariable",
                           StringValue("ns3::UniformRandomVariable"),
                           MakePointerAccessor(&RoutingProtocol::m_uniformRandomVariable),
-                          MakePointerChecker<UniformRandomVariable>());
+                          MakePointerChecker<UniformRandomVariable>())
+            // FF-AODV attributes
+            .AddAttribute("Alpha",
+                          "Weight for energy in fitness function",
+                          DoubleValue(0.6),
+                          MakeDoubleAccessor(&RoutingProtocol::m_alpha),
+                          MakeDoubleChecker<double>(0.0, 1.0))
+            .AddAttribute("Beta",
+                          "Weight for hop count in fitness function",
+                          DoubleValue(0.4),
+                          MakeDoubleAccessor(&RoutingProtocol::m_beta),
+                          MakeDoubleChecker<double>(0.0, 1.0))
+            .AddAttribute("InitialEnergy",
+                          "Initial energy of each node in Joules",
+                          DoubleValue(100.0),
+                          MakeDoubleAccessor(&RoutingProtocol::m_initialEnergy),
+                          MakeDoubleChecker<double>(0.0));
     return tid;
 }
 
@@ -356,6 +378,23 @@ RoutingProtocol::SetMaxQueueTime(Time t)
 
 RoutingProtocol::~RoutingProtocol()
 {
+}
+
+// FF-AODV: Compute fitness = alpha * (Eresidual / Einitial) + beta * (1 / hopCount)
+double
+RoutingProtocol::CalculateFitness(double residualEnergy, uint8_t hopCount) const
+{
+    double energyRatio = 0.0;
+    if (m_initialEnergy > 0.0)
+    {
+        energyRatio = residualEnergy / m_initialEnergy;
+    }
+    double hopFactor = 0.0;
+    if (hopCount > 0)
+    {
+        hopFactor = 1.0 / static_cast<double>(hopCount);
+    }
+    return m_alpha * energyRatio + m_beta * hopFactor;
 }
 
 void
@@ -1365,6 +1404,23 @@ RoutingProtocol::RecvRequest(Ptr<Packet> p, Ipv4Address receiver, Ipv4Address sr
     uint8_t hop = rreqHeader.GetHopCount() + 1;
     rreqHeader.SetHopCount(hop);
 
+    // FF-AODV: get this node's residual energy and compute fitness
+    double residualEnergy = m_initialEnergy; // default if no energy model
+    Ptr<Node> thisNode = m_ipv4->GetObject<Node>();
+    Ptr<EnergySourceContainer> energyContainer =
+        thisNode->GetObject<EnergySourceContainer>();
+    if (energyContainer && energyContainer->GetN() > 0)
+    {
+        residualEnergy = energyContainer->Get(0)->GetRemainingEnergy();
+    }
+    double localFitness = CalculateFitness(residualEnergy, hop);
+
+    // Take the minimum fitness along the path (weakest link)
+    double incomingFitness = rreqHeader.GetPathFitness();
+    double pathFitness = (incomingFitness == 0.0) ? localFitness
+                                                   : std::min(incomingFitness, localFitness);
+    rreqHeader.SetPathFitness(pathFitness);
+
     /*
      *  When the reverse route is created or updated, the following actions on the route are also
      * carried out:
@@ -1389,6 +1445,8 @@ RoutingProtocol::RecvRequest(Ptr<Packet> p, Ipv4Address receiver, Ipv4Address sr
             /*hops=*/hop,
             /*nextHop=*/src,
             /*lifetime=*/Time((2 * m_netTraversalTime - 2 * hop * m_nodeTraversalTime)));
+        // FF-AODV: store fitness in the new route entry
+        newEntry.SetFitness(pathFitness);
         m_routingTable.AddRoute(newEntry);
     }
     else
@@ -1404,14 +1462,23 @@ RoutingProtocol::RecvRequest(Ptr<Packet> p, Ipv4Address receiver, Ipv4Address sr
         {
             toOrigin.SetSeqNo(rreqHeader.GetOriginSeqno());
         }
-        toOrigin.SetValidSeqNo(true);
-        toOrigin.SetNextHop(src);
-        toOrigin.SetOutputDevice(m_ipv4->GetNetDevice(m_ipv4->GetInterfaceForAddress(receiver)));
-        toOrigin.SetInterface(m_ipv4->GetAddress(m_ipv4->GetInterfaceForAddress(receiver), 0));
-        toOrigin.SetHop(hop);
-        toOrigin.SetLifeTime(std::max(Time(2 * m_netTraversalTime - 2 * hop * m_nodeTraversalTime),
-                                      toOrigin.GetLifeTime()));
-        m_routingTable.Update(toOrigin);
+
+        // FF-AODV: update route only if new fitness is better
+        if (pathFitness > toOrigin.GetFitness())
+        {
+            toOrigin.SetValidSeqNo(true);
+            toOrigin.SetNextHop(src);
+            toOrigin.SetOutputDevice(
+                m_ipv4->GetNetDevice(m_ipv4->GetInterfaceForAddress(receiver)));
+            toOrigin.SetInterface(
+                m_ipv4->GetAddress(m_ipv4->GetInterfaceForAddress(receiver), 0));
+            toOrigin.SetHop(hop);
+            toOrigin.SetLifeTime(
+                std::max(Time(2 * m_netTraversalTime - 2 * hop * m_nodeTraversalTime),
+                         toOrigin.GetLifeTime()));
+            toOrigin.SetFitness(pathFitness);
+            m_routingTable.Update(toOrigin);
+        }
         // m_nb.Update (src, Time (AllowedHelloLoss * HelloInterval));
     }
 
@@ -1663,6 +1730,21 @@ RoutingProtocol::RecvReply(Ptr<Packet> p, Ipv4Address receiver, Ipv4Address send
     uint8_t hop = rrepHeader.GetHopCount() + 1;
     rrepHeader.SetHopCount(hop);
 
+    // FF-AODV: compute fitness at this node for the RREP path
+    double residualEnergy = m_initialEnergy;
+    Ptr<Node> thisNode = m_ipv4->GetObject<Node>();
+    Ptr<EnergySourceContainer> energyContainer =
+        thisNode->GetObject<EnergySourceContainer>();
+    if (energyContainer && energyContainer->GetN() > 0)
+    {
+        residualEnergy = energyContainer->Get(0)->GetRemainingEnergy();
+    }
+    double localFitness = CalculateFitness(residualEnergy, hop);
+    double incomingFitness = rrepHeader.GetPathFitness();
+    double replyFitness = (incomingFitness == 0.0) ? localFitness
+                                                    : std::min(incomingFitness, localFitness);
+    rrepHeader.SetPathFitness(replyFitness);
+
     // If RREP is Hello message
     if (dst == rrepHeader.GetOrigin())
     {
@@ -1693,33 +1775,32 @@ RoutingProtocol::RecvReply(Ptr<Packet> p, Ipv4Address receiver, Ipv4Address send
         /*hops=*/hop,
         /*nextHop=*/sender,
         /*lifetime=*/rrepHeader.GetLifeTime());
+    // FF-AODV: store the path fitness in the new entry
+    newEntry.SetFitness(replyFitness);
+
     RoutingTableEntry toDst;
     if (m_routingTable.LookupRoute(dst, toDst))
     {
-        /*
-         * The existing entry is updated only in the following circumstances:
-         * (i) the sequence number in the routing table is marked as invalid in route table entry.
-         */
+        // (i) sequence number in route table is invalid
         if (!toDst.GetValidSeqNo())
         {
             m_routingTable.Update(newEntry);
         }
-        // (ii)the Destination Sequence Number in the RREP is greater than the node's copy of the
-        // destination sequence number and the known value is valid,
+        // (ii) RREP has a larger destination sequence number
         else if ((int32_t(rrepHeader.GetDstSeqno()) - int32_t(toDst.GetSeqNo())) > 0)
         {
             m_routingTable.Update(newEntry);
         }
         else
         {
-            // (iii) the sequence numbers are the same, but the route is marked as inactive.
+            // (iii) same seq number, route is inactive
             if ((rrepHeader.GetDstSeqno() == toDst.GetSeqNo()) && (toDst.GetFlag() != VALID))
             {
                 m_routingTable.Update(newEntry);
             }
-            // (iv)  the sequence numbers are the same, and the New Hop Count is smaller than the
-            // hop count in route table entry.
-            else if ((rrepHeader.GetDstSeqno() == toDst.GetSeqNo()) && (hop < toDst.GetHop()))
+            // FF-AODV: (iv) same seq number, compare fitness instead of hop count
+            else if ((rrepHeader.GetDstSeqno() == toDst.GetSeqNo()) &&
+                     (replyFitness > toDst.GetFitness()))
             {
                 m_routingTable.Update(newEntry);
             }
@@ -1727,7 +1808,7 @@ RoutingProtocol::RecvReply(Ptr<Packet> p, Ipv4Address receiver, Ipv4Address send
     }
     else
     {
-        // The forward route for this destination is created if it does not already exist.
+        // Create a new forward route
         NS_LOG_LOGIC("add new route");
         m_routingTable.AddRoute(newEntry);
     }

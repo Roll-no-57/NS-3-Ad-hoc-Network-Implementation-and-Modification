@@ -358,6 +358,10 @@ class RoutingTableEntry
         return m_blackListTimeout;
     }
 
+    // FF-AODV: fitness score getter and setter
+    void SetFitness(double f) { m_fitness = f; }
+    double GetFitness() const { return m_fitness; }
+
     /// RREP_ACK timer
     Timer m_ackTimer;
 

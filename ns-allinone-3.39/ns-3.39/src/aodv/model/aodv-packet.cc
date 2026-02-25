@@ -153,6 +153,7 @@ RreqHeader::RreqHeader(uint8_t flags,
       m_dstSeqNo(dstSeqNo),
       m_origin(origin),
       m_originSeqNo(originSeqNo),
+      // initialized to 0.0 
       m_pathFitness(0.0)
 {
 }
@@ -178,7 +179,8 @@ RreqHeader::GetInstanceTypeId() const
 uint32_t
 RreqHeader::GetSerializedSize() const
 {
-    return 31; // original 23 + 8 bytes for m_pathFitness (double)
+    // original 23 + 8 bytes for m_pathFitness (double)
+    return 31; 
 }
 
 void

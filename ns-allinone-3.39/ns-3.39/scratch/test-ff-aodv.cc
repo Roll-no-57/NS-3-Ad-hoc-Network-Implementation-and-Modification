@@ -1,14 +1,3 @@
-/*
- * test-ff-aodv.cc — Verify that FF-AODV compiles, runs, and uses
- *                   fitness-based routing with energy awareness.
- *
- * Topology:  10 nodes randomly placed in a 500x500 area
- *            Wi-Fi ad-hoc, Gauss-Markov mobility
- *            UDP traffic from node 0 → node 9
- *            BasicEnergySource (100 J) on each node
- *            Modified AODV with fitness function routing
- */
-
 #include "ns3/core-module.h"
 #include "ns3/network-module.h"
 #include "ns3/internet-module.h"
@@ -27,7 +16,7 @@ int
 main(int argc, char* argv[])
 {
     uint32_t nNodes = 10;
-    double simTime = 30.0;      // seconds
+    double simTime = 30.0;     
     bool verbose = false;
 
     CommandLine cmd(__FILE__);
@@ -41,16 +30,14 @@ main(int argc, char* argv[])
         LogComponentEnable("AodvRoutingProtocol", LOG_LEVEL_LOGIC);
     }
 
-    // -----------------------------------------------
     // 1. Create nodes
-    // -----------------------------------------------
     NodeContainer nodes;
     nodes.Create(nNodes);
     std::cout << "[1] Created " << nNodes << " nodes.\n";
 
-    // -----------------------------------------------
+
     // 2. Wi-Fi ad-hoc setup
-    // -----------------------------------------------
+
     WifiHelper wifi;
     wifi.SetStandard(WIFI_STANDARD_80211a);
     wifi.SetRemoteStationManager("ns3::ConstantRateWifiManager",
@@ -67,9 +54,9 @@ main(int argc, char* argv[])
     NetDeviceContainer devices = wifi.Install(phy, mac, nodes);
     std::cout << "[2] Wi-Fi ad-hoc devices installed.\n";
 
-    // -----------------------------------------------
+
     // 3. Mobility — random positions + Gauss-Markov
-    // -----------------------------------------------
+
     MobilityHelper mobility;
     mobility.SetPositionAllocator("ns3::RandomRectanglePositionAllocator",
                                   "X", StringValue("ns3::UniformRandomVariable[Min=0|Max=200]"),
@@ -81,14 +68,13 @@ main(int argc, char* argv[])
     mobility.Install(nodes);
     std::cout << "[3] Mobility installed (Gauss-Markov, 500x500 area).\n";
 
-    // -----------------------------------------------
+
     // 4. Energy — BasicEnergySource (100 J per node)
-    // -----------------------------------------------
+
     BasicEnergySourceHelper energyHelper;
     energyHelper.Set("BasicEnergySourceInitialEnergyJ", DoubleValue(100.0));
     EnergySourceContainer energySources = energyHelper.Install(nodes);
 
-    // Attach a Wi-Fi radio energy model so energy actually depletes
     WifiRadioEnergyModelHelper radioEnergyHelper;
     for (uint32_t i = 0; i < nNodes; i++)
     {
@@ -97,11 +83,10 @@ main(int argc, char* argv[])
     }
     std::cout << "[4] Energy sources (100 J) and radio energy models installed.\n";
 
-    // -----------------------------------------------
+
     // 5. Internet stack with FF-AODV
-    // -----------------------------------------------
+
     AodvHelper aodv;
-    // Set the FF-AODV fitness weights (these are the defaults we coded)
     aodv.Set("Alpha", DoubleValue(0.6));
     aodv.Set("Beta", DoubleValue(0.4));
     aodv.Set("InitialEnergy", DoubleValue(100.0));
@@ -117,9 +102,9 @@ main(int argc, char* argv[])
     std::cout << "[5] Internet stack with FF-AODV installed.\n";
     std::cout << "    Alpha=0.6, Beta=0.4, InitialEnergy=100 J\n";
 
-    // -----------------------------------------------
-    // 6. Applications — UDP from node 0 → node 9
-    // -----------------------------------------------
+
+    // 6. Applications 
+
     uint16_t port = 9;
 
     // Sink on node 9
@@ -140,25 +125,24 @@ main(int argc, char* argv[])
     std::cout << "[6] UDP traffic: Node 0 → Node " << (nNodes - 1)
               << " at 64 kbps.\n";
 
-    // -----------------------------------------------
+
     // 7. FlowMonitor — measure PDR, delay, throughput
-    // -----------------------------------------------
+
     FlowMonitorHelper flowHelper;
     Ptr<FlowMonitor> flowMonitor = flowHelper.InstallAll();
 
-    // -----------------------------------------------
+
     // 8. Run
-    // -----------------------------------------------
+
     std::cout << "\n=== Starting simulation for " << simTime << " seconds ===\n\n";
     Simulator::Stop(Seconds(simTime));
     Simulator::Run();
 
-    // -----------------------------------------------
+
     // 9. Results
-    // -----------------------------------------------
+
     std::cout << "\n=== Simulation Complete ===\n\n";
 
-    // Print remaining energy for all nodes
     std::cout << "--- Node Energy Status ---\n";
     for (uint32_t i = 0; i < nNodes; i++)
     {
@@ -170,7 +154,6 @@ main(int argc, char* argv[])
                   << " J  (" << pct << "% remaining)\n";
     }
 
-    // Print FlowMonitor stats
     std::cout << "\n--- Flow Statistics ---\n";
     flowMonitor->CheckForLostPackets();
     Ptr<Ipv4FlowClassifier> classifier =

@@ -315,9 +315,17 @@ class RreqHeader : public Header
      * \param o RREQ header to compare
      * \return true if the RREQ headers are equal
      */
-    // FF-AODV: fitness score carried along the path
-    void SetPathFitness(double f) { m_pathFitness = f; }
-    double GetPathFitness() const { return m_pathFitness; }
+
+
+
+    
+    // FF-AOMDV: fitness score so far 
+    void SetPathFitness(double f) { 
+        m_pathFitness = f;
+    }
+    double GetPathFitness() const {
+        return m_pathFitness; 
+    }
 
     bool operator==(const RreqHeader& o) const;
 
@@ -330,7 +338,7 @@ class RreqHeader : public Header
     uint32_t m_dstSeqNo;    ///< Destination Sequence Number
     Ipv4Address m_origin;   ///< Originator IP Address
     uint32_t m_originSeqNo; ///< Source Sequence Number
-    double m_pathFitness;   ///< FF-AODV: cumulative fitness score
+    double m_pathFitness;   ///< FF-AODV: fitness score
 };
 
 /**
@@ -509,9 +517,15 @@ class RrepHeader : public Header
      * \param o RREP header to compare
      * \return true if the RREP headers are equal
      */
+
+
     // FF-AODV: fitness score carried in the reply
-    void SetPathFitness(double f) { m_pathFitness = f; }
-    double GetPathFitness() const { return m_pathFitness; }
+    void SetPathFitness(double f) { 
+        m_pathFitness = f; 
+    }
+    double GetPathFitness() const { 
+        return m_pathFitness; 
+    }
 
     bool operator==(const RrepHeader& o) const;
 
@@ -523,6 +537,7 @@ class RrepHeader : public Header
     uint32_t m_dstSeqNo;  ///< Destination Sequence Number
     Ipv4Address m_origin; ///< Source IP Address
     uint32_t m_lifeTime;  ///< Lifetime (in milliseconds)
+    
     double m_pathFitness; ///< FF-AODV: cumulative fitness score
 };
 

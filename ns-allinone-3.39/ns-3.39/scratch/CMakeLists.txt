@@ -11,6 +11,7 @@ build_example(
     ${libenergy}
     ${libaodv}
     ${libflow-monitor}
+    ${libnetanim}
 )
 
 build_example(

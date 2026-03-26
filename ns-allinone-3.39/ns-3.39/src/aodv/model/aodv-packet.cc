@@ -154,7 +154,8 @@ RreqHeader::RreqHeader(uint8_t flags,
       m_origin(origin),
       m_originSeqNo(originSeqNo),
       // initialized to 0.0 
-      m_pathFitness(0.0)
+      m_pathFitness(0.0),
+      m_velocity(0.0)
 {
 }
 
@@ -179,8 +180,8 @@ RreqHeader::GetInstanceTypeId() const
 uint32_t
 RreqHeader::GetSerializedSize() const
 {
-    // original 23 + 8 bytes for m_pathFitness (double)
-    return 31; 
+    // original 23 + 8 bytes for m_pathFitness + 8 bytes for m_velocity
+    return 39; 
 }
 
 void
@@ -199,6 +200,11 @@ RreqHeader::Serialize(Buffer::Iterator i) const
     uint64_t fitnessRaw;
     std::memcpy(&fitnessRaw, &m_pathFitness, sizeof(double));
     i.WriteHtonU64(fitnessRaw);
+
+    // FF-AODV Phase 2: write velocity as 8-byte double
+    uint64_t velocityRaw;
+    std::memcpy(&velocityRaw, &m_velocity, sizeof(double));
+    i.WriteHtonU64(velocityRaw);
 }
 
 uint32_t
@@ -217,6 +223,10 @@ RreqHeader::Deserialize(Buffer::Iterator start)
     // FF-AODV: read fitness
     uint64_t fitnessRaw = i.ReadNtohU64();
     std::memcpy(&m_pathFitness, &fitnessRaw, sizeof(double));
+
+    // FF-AODV Phase 2: read velocity
+    uint64_t velocityRaw = i.ReadNtohU64();
+    std::memcpy(&m_velocity, &velocityRaw, sizeof(double));
 
     uint32_t dist = i.GetDistanceFrom(start);
     NS_ASSERT(dist == GetSerializedSize());
@@ -303,7 +313,7 @@ RreqHeader::operator==(const RreqHeader& o) const
     return (m_flags == o.m_flags && m_reserved == o.m_reserved && m_hopCount == o.m_hopCount &&
             m_requestID == o.m_requestID && m_dst == o.m_dst && m_dstSeqNo == o.m_dstSeqNo &&
             m_origin == o.m_origin && m_originSeqNo == o.m_originSeqNo &&
-            m_pathFitness == o.m_pathFitness);
+            m_pathFitness == o.m_pathFitness && m_velocity == o.m_velocity);
 }
 
 //-----------------------------------------------------------------------------
@@ -322,7 +332,8 @@ RrepHeader::RrepHeader(uint8_t prefixSize,
       m_dst(dst),
       m_dstSeqNo(dstSeqNo),
       m_origin(origin),
-      m_pathFitness(0.0)
+      m_pathFitness(0.0),
+      m_velocity(0.0)
 {
     m_lifeTime = uint32_t(lifeTime.GetMilliSeconds());
 }
@@ -348,7 +359,7 @@ RrepHeader::GetInstanceTypeId() const
 uint32_t
 RrepHeader::GetSerializedSize() const
 {
-    return 27; // original 19 + 8 bytes for m_pathFitness (double)
+    return 35; // original 19 + 8 bytes for m_pathFitness + 8 bytes for m_velocity
 }
 
 void
@@ -366,6 +377,11 @@ RrepHeader::Serialize(Buffer::Iterator i) const
     uint64_t fitnessRaw;
     std::memcpy(&fitnessRaw, &m_pathFitness, sizeof(double));
     i.WriteHtonU64(fitnessRaw);
+
+    // FF-AODV Phase 2: write velocity as 8-byte double
+    uint64_t velocityRaw;
+    std::memcpy(&velocityRaw, &m_velocity, sizeof(double));
+    i.WriteHtonU64(velocityRaw);
 }
 
 uint32_t
@@ -385,6 +401,10 @@ RrepHeader::Deserialize(Buffer::Iterator start)
     uint64_t fitnessRaw = i.ReadNtohU64();
     std::memcpy(&m_pathFitness, &fitnessRaw, sizeof(double));
 
+    // FF-AODV Phase 2: read velocity
+    uint64_t velocityRaw = i.ReadNtohU64();
+    std::memcpy(&m_velocity, &velocityRaw, sizeof(double));
+
     uint32_t dist = i.GetDistanceFrom(start);
     NS_ASSERT(dist == GetSerializedSize());
     return dist;
@@ -400,7 +420,8 @@ RrepHeader::Print(std::ostream& os) const
     }
     os << " source ipv4 " << m_origin << " lifetime " << m_lifeTime
        << " acknowledgment required flag " << (*this).GetAckRequired()
-       << " PathFitness " << m_pathFitness;
+       << " PathFitness " << m_pathFitness
+       << " Velocity " << m_velocity;
 }
 
 void
@@ -452,7 +473,8 @@ RrepHeader::operator==(const RrepHeader& o) const
 {
     return (m_flags == o.m_flags && m_prefixSize == o.m_prefixSize && m_hopCount == o.m_hopCount &&
             m_dst == o.m_dst && m_dstSeqNo == o.m_dstSeqNo && m_origin == o.m_origin &&
-            m_lifeTime == o.m_lifeTime && m_pathFitness == o.m_pathFitness);
+            m_lifeTime == o.m_lifeTime && m_pathFitness == o.m_pathFitness &&
+            m_velocity == o.m_velocity);
 }
 
 void

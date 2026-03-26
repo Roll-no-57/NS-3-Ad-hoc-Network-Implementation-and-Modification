@@ -182,9 +182,11 @@ RoutingProtocol::RoutingProtocol()
       m_rreqRateLimitTimer(Timer::CANCEL_ON_DESTROY),
       m_rerrRateLimitTimer(Timer::CANCEL_ON_DESTROY),
       m_lastBcastTime(Seconds(0)),
-      m_alpha(0.6),
-      m_beta(0.4),
-      m_initialEnergy(100.0)
+      m_alpha(0.5),
+      m_beta(0.3),
+      m_initialEnergy(100.0),
+      m_gamma(0.2),
+      m_maxVelocity(50.0)
 {
     m_nb.SetCallback(MakeCallback(&RoutingProtocol::SendRerrWhenBreaksLinkToNextHop, this));
 }
@@ -346,18 +348,29 @@ RoutingProtocol::GetTypeId()
             // FF-AODV attributes
             .AddAttribute("Alpha",
                           "Weight for energy in fitness function",
-                          DoubleValue(0.6),
+                          DoubleValue(0.5),
                           MakeDoubleAccessor(&RoutingProtocol::m_alpha),
                           MakeDoubleChecker<double>(0.0, 1.0))
             .AddAttribute("Beta",
                           "Weight for hop count in fitness function",
-                          DoubleValue(0.4),
+                          DoubleValue(0.3),
                           MakeDoubleAccessor(&RoutingProtocol::m_beta),
                           MakeDoubleChecker<double>(0.0, 1.0))
             .AddAttribute("InitialEnergy",
                           "Initial energy of each node in Joules",
                           DoubleValue(100.0),
                           MakeDoubleAccessor(&RoutingProtocol::m_initialEnergy),
+                          MakeDoubleChecker<double>(0.0))
+            // FF-AODV Phase 2: velocity-aware attributes
+            .AddAttribute("Gamma",
+                          "Weight for velocity component in fitness function",
+                          DoubleValue(0.2),
+                          MakeDoubleAccessor(&RoutingProtocol::m_gamma),
+                          MakeDoubleChecker<double>(0.0, 1.0))
+            .AddAttribute("MaxVelocity",
+                          "Maximum expected velocity in m/s for fitness normalization",
+                          DoubleValue(50.0),
+                          MakeDoubleAccessor(&RoutingProtocol::m_maxVelocity),
                           MakeDoubleChecker<double>(0.0));
     return tid;
 }
@@ -380,9 +393,9 @@ RoutingProtocol::~RoutingProtocol()
 {
 }
 
-// FF-AODV: Compute fitness = alpha * (Eresidual / Einitial) + beta * (1 / hopCount)
+// FF-AODV: Compute fitness = alpha * (Eresidual / Einitial) + beta * (1 / hopCount) + gamma * ((Vmax - V) / Vmax)
 double
-RoutingProtocol::CalculateFitness(double residualEnergy, uint8_t hopCount) const
+RoutingProtocol::CalculateFitness(double residualEnergy, uint8_t hopCount, double velocity) const
 {
     double energyRatio = 0.0;
     if (m_initialEnergy > 0.0)
@@ -394,7 +407,14 @@ RoutingProtocol::CalculateFitness(double residualEnergy, uint8_t hopCount) const
     {
         hopFactor = 1.0 / static_cast<double>(hopCount);
     }
-    return m_alpha * energyRatio + m_beta * hopFactor;
+    // Phase 2: velocity penalty — slower nodes get higher fitness
+    double velocityFactor = 0.0;
+    if (m_maxVelocity > 0.0)
+    {
+        double clampedVelocity = std::min(velocity, m_maxVelocity);
+        velocityFactor = (m_maxVelocity - clampedVelocity) / m_maxVelocity;
+    }
+    return m_alpha * energyRatio + m_beta * hopFactor + m_gamma * velocityFactor;
 }
 
 void
@@ -1413,13 +1433,28 @@ RoutingProtocol::RecvRequest(Ptr<Packet> p, Ipv4Address receiver, Ipv4Address sr
     {
         residualEnergy = energyContainer->Get(0)->GetRemainingEnergy();
     }
-    double localFitness = CalculateFitness(residualEnergy, hop);
+
+    // FF-AODV Phase 2: get this node's velocity
+    double currentSpeed = 0.0;
+    Ptr<MobilityModel> mobilityModel = thisNode->GetObject<MobilityModel>();
+    if (mobilityModel)
+    {
+        Vector vel = mobilityModel->GetVelocity();
+        currentSpeed = std::sqrt(vel.x * vel.x + vel.y * vel.y + vel.z * vel.z);
+    }
+
+    double localFitness = CalculateFitness(residualEnergy, hop, currentSpeed);
 
     // Take the minimum fitness along the path (weakest link)
     double incomingFitness = rreqHeader.GetPathFitness();
     double pathFitness = (incomingFitness == 0.0) ? localFitness
                                                    : std::min(incomingFitness, localFitness);
     rreqHeader.SetPathFitness(pathFitness);
+
+    // FF-AODV Phase 2: track max velocity along path (worst-case mobility)
+    double incomingVelocity = rreqHeader.GetVelocity();
+    double pathVelocity = std::max(incomingVelocity, currentSpeed);
+    rreqHeader.SetVelocity(pathVelocity);
 
     /*
      *  When the reverse route is created or updated, the following actions on the route are also
@@ -1739,11 +1774,26 @@ RoutingProtocol::RecvReply(Ptr<Packet> p, Ipv4Address receiver, Ipv4Address send
     {
         residualEnergy = energyContainer->Get(0)->GetRemainingEnergy();
     }
-    double localFitness = CalculateFitness(residualEnergy, hop);
+
+    // FF-AODV Phase 2: get this node's velocity
+    double currentSpeed = 0.0;
+    Ptr<MobilityModel> mobilityModel = thisNode->GetObject<MobilityModel>();
+    if (mobilityModel)
+    {
+        Vector vel = mobilityModel->GetVelocity();
+        currentSpeed = std::sqrt(vel.x * vel.x + vel.y * vel.y + vel.z * vel.z);
+    }
+
+    double localFitness = CalculateFitness(residualEnergy, hop, currentSpeed);
     double incomingFitness = rrepHeader.GetPathFitness();
     double replyFitness = (incomingFitness == 0.0) ? localFitness
                                                     : std::min(incomingFitness, localFitness);
     rrepHeader.SetPathFitness(replyFitness);
+
+    // FF-AODV Phase 2: track max velocity along path
+    double incomingVelocity = rrepHeader.GetVelocity();
+    double pathVelocity = std::max(incomingVelocity, currentSpeed);
+    rrepHeader.SetVelocity(pathVelocity);
 
     // If RREP is Hello message
     if (dst == rrepHeader.GetOrigin())

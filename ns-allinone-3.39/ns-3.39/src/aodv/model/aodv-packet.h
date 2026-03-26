@@ -327,6 +327,14 @@ class RreqHeader : public Header
         return m_pathFitness; 
     }
 
+    // FF-AODV Phase 2: velocity of the forwarding node (m/s)
+    void SetVelocity(double v) {
+        m_velocity = v;
+    }
+    double GetVelocity() const {
+        return m_velocity;
+    }
+
     bool operator==(const RreqHeader& o) const;
 
   private:
@@ -339,6 +347,7 @@ class RreqHeader : public Header
     Ipv4Address m_origin;   ///< Originator IP Address
     uint32_t m_originSeqNo; ///< Source Sequence Number
     double m_pathFitness;   ///< FF-AODV: fitness score
+    double m_velocity;      ///< FF-AODV Phase 2: max velocity along path (m/s)
 };
 
 /**
@@ -527,6 +536,14 @@ class RrepHeader : public Header
         return m_pathFitness; 
     }
 
+    // FF-AODV Phase 2: velocity of the forwarding node (m/s)
+    void SetVelocity(double v) {
+        m_velocity = v;
+    }
+    double GetVelocity() const {
+        return m_velocity;
+    }
+
     bool operator==(const RrepHeader& o) const;
 
   private:
@@ -539,6 +556,7 @@ class RrepHeader : public Header
     uint32_t m_lifeTime;  ///< Lifetime (in milliseconds)
     
     double m_pathFitness; ///< FF-AODV: cumulative fitness score
+    double m_velocity;    ///< FF-AODV Phase 2: max velocity along path (m/s)
 };
 
 /**

@@ -50,6 +50,7 @@
 #include "ns3/wifi-net-device.h"
 
 #include <algorithm>
+#include <cmath>
 #include <limits>
 
 namespace ns3
@@ -1414,11 +1415,7 @@ RoutingProtocol::RecvRequest(Ptr<Packet> p, Ipv4Address receiver, Ipv4Address sr
      * and RREQ ID. If such a RREQ has been received, the node silently discards the newly received
      * RREQ.
      */
-    if (m_rreqIdCache.IsDuplicate(origin, id))
-    {
-        NS_LOG_DEBUG("Ignoring RREQ due to duplicate");
-        return;
-    }
+    bool isDuplicateRreq = m_rreqIdCache.IsDuplicate(origin, id);
 
     // Increment RREQ hop count
     uint8_t hop = rreqHeader.GetHopCount() + 1;
@@ -1455,6 +1452,25 @@ RoutingProtocol::RecvRequest(Ptr<Packet> p, Ipv4Address receiver, Ipv4Address sr
     double incomingVelocity = rreqHeader.GetVelocity();
     double pathVelocity = std::max(incomingVelocity, currentSpeed);
     rreqHeader.SetVelocity(pathVelocity);
+
+    // FF-AODV: allow duplicate RREQs only when they improve path fitness.
+    // This enables better (possibly longer) energy-aware alternatives to be
+    // considered instead of always locking onto the first-arriving request.
+    if (isDuplicateRreq)
+    {
+        RoutingTableEntry existingToOrigin;
+        if (!m_routingTable.LookupRoute(origin, existingToOrigin))
+        {
+            NS_LOG_DEBUG("Ignoring duplicate RREQ due to missing reverse route");
+            return;
+        }
+        if (pathFitness <= existingToOrigin.GetFitness())
+        {
+            NS_LOG_DEBUG("Ignoring duplicate RREQ due to non-improving fitness");
+            return;
+        }
+        NS_LOG_DEBUG("Processing duplicate RREQ with improved fitness");
+    }
 
     /*
      *  When the reverse route is created or updated, the following actions on the route are also
@@ -1659,6 +1675,45 @@ RoutingProtocol::SendReply(const RreqHeader& rreqHeader, const RoutingTableEntry
                           /*dstSeqNo=*/m_seqNo,
                           /*origin=*/toOrigin.GetDestination(),
                           /*lifetime=*/m_myRouteTimeout);
+
+    // Seed RREP metrics from the discovered RREQ path so the destination-side
+    // contribution is not lost before the first RecvReply() hop.
+    double replyFitness = rreqHeader.GetPathFitness();
+    double replyVelocity = rreqHeader.GetVelocity();
+
+    // Backward-compatible fallback for packets that do not carry FF-AODV fields.
+    if (replyFitness == 0.0 || replyVelocity == 0.0)
+    {
+        Ptr<Node> thisNode = m_ipv4->GetObject<Node>();
+
+        double residualEnergy = m_initialEnergy;
+        Ptr<EnergySourceContainer> energyContainer = thisNode->GetObject<EnergySourceContainer>();
+        if (energyContainer && energyContainer->GetN() > 0)
+        {
+            residualEnergy = energyContainer->Get(0)->GetRemainingEnergy();
+        }
+
+        double currentSpeed = 0.0;
+        Ptr<MobilityModel> mobilityModel = thisNode->GetObject<MobilityModel>();
+        if (mobilityModel)
+        {
+            Vector vel = mobilityModel->GetVelocity();
+            currentSpeed = std::sqrt(vel.x * vel.x + vel.y * vel.y + vel.z * vel.z);
+        }
+
+        if (replyFitness == 0.0)
+        {
+            replyFitness = CalculateFitness(residualEnergy, 1, currentSpeed);
+        }
+        if (replyVelocity == 0.0)
+        {
+            replyVelocity = currentSpeed;
+        }
+    }
+
+    rrepHeader.SetPathFitness(replyFitness);
+    rrepHeader.SetVelocity(replyVelocity);
+
     Ptr<Packet> packet = Create<Packet>();
     SocketIpTtlTag tag;
     tag.SetTtl(toOrigin.GetHop());
@@ -1677,12 +1732,41 @@ RoutingProtocol::SendReplyByIntermediateNode(RoutingTableEntry& toDst,
                                              bool gratRep)
 {
     NS_LOG_FUNCTION(this);
+
+    Ptr<Node> thisNode = m_ipv4->GetObject<Node>();
+
+    double residualEnergy = m_initialEnergy;
+    Ptr<EnergySourceContainer> energyContainer = thisNode->GetObject<EnergySourceContainer>();
+    if (energyContainer && energyContainer->GetN() > 0)
+    {
+        residualEnergy = energyContainer->Get(0)->GetRemainingEnergy();
+    }
+
+    double currentSpeed = 0.0;
+    Ptr<MobilityModel> mobilityModel = thisNode->GetObject<MobilityModel>();
+    if (mobilityModel)
+    {
+        Vector vel = mobilityModel->GetVelocity();
+        currentSpeed = std::sqrt(vel.x * vel.x + vel.y * vel.y + vel.z * vel.z);
+    }
+
     RrepHeader rrepHeader(/*prefixSize=*/0,
                           /*hopCount=*/toDst.GetHop(),
                           /*dst=*/toDst.GetDestination(),
                           /*dstSeqNo=*/toDst.GetSeqNo(),
                           /*origin=*/toOrigin.GetDestination(),
                           /*lifetime=*/toDst.GetLifeTime());
+
+    double replyFitness = toDst.GetFitness();
+    if (replyFitness == 0.0)
+    {
+        uint8_t hopForFitness = std::max<uint8_t>(1, toDst.GetHop());
+        replyFitness = CalculateFitness(residualEnergy, hopForFitness, currentSpeed);
+    }
+    rrepHeader.SetPathFitness(replyFitness);
+    // Cached routes do not store max path velocity; seed with local speed.
+    rrepHeader.SetVelocity(currentSpeed);
+
     /* If the node we received a RREQ for is a neighbor we are
      * probably facing a unidirectional link... Better request a RREP-ack
      */
@@ -1720,6 +1804,16 @@ RoutingProtocol::SendReplyByIntermediateNode(RoutingTableEntry& toDst,
                                  /*dstSeqNo=*/toOrigin.GetSeqNo(),
                                  /*origin=*/toDst.GetDestination(),
                                  /*lifetime=*/toOrigin.GetLifeTime());
+
+        double gratFitness = toOrigin.GetFitness();
+        if (gratFitness == 0.0)
+        {
+            uint8_t hopForFitness = std::max<uint8_t>(1, toOrigin.GetHop());
+            gratFitness = CalculateFitness(residualEnergy, hopForFitness, currentSpeed);
+        }
+        gratRepHeader.SetPathFitness(gratFitness);
+        gratRepHeader.SetVelocity(currentSpeed);
+
         Ptr<Packet> packetToDst = Create<Packet>();
         SocketIpTtlTag gratTag;
         gratTag.SetTtl(toDst.GetHop());

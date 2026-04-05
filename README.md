@@ -133,14 +133,33 @@ File: `scratch/test-ff-aodv-v2.cc`
 ```bash
 cd ns-allinone-3.39/ns-3.39
 ./ns3 configure --enable-examples --enable-tests
+# 2. Build
 ./ns3 build
 
-# Run Phase 1 test (low-mobility, 10 nodes)
-./ns3 run "test-ff-aodv"
+# 3. Run simulation (generates ff-aodv-animation.xml)
+./build/examples/ns3.39-test-ff-aodv-p2-default
 
-# Run Phase 2 test (high-mobility, 15 nodes)
-./ns3 run "test-ff-aodv-v2"
+# 4. Open NetAnim
+cd ../netanim-3.109
+QT_QPA_PLATFORM=xcb LD_PRELOAD=/lib/x86_64-linux-gnu/libpthread.so.0 ./NetAnim
+# Then open ff-aodv-animation.xml from the ns-3.39 folder
 ```
+
+### NetAnim Troubleshooting (if timeline is stuck at 0 and Packets tab is empty)
+
+If nodes appear but:
+- sim-time slider cannot move
+- Packets tab says `No data available`
+
+then rebuild NetAnim (a parser fallback fix is needed for `pr/wpr` packet-reference tags):
+
+```bash
+cd ns-allinone-3.39/netanim-3.109
+make -j$(nproc)
+QT_QPA_PLATFORM=xcb LD_PRELOAD=/lib/x86_64-linux-gnu/libpthread.so.0 ./NetAnim
+```
+
+After opening XML, set Pause to 1-5 and move sim-time near 5s (main UDP flow starts around 5s in the demo).
 
 ### Configurable Parameters (via ns-3 attributes)
 

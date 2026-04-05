@@ -15,6 +15,21 @@ build_example(
 )
 
 build_example(
+  NAME test-ff-aodv-energy-route-demo
+  SOURCE_FILES test-ff-aodv-energy-route-demo.cc
+  LIBRARIES_TO_LINK
+    ${libcore}
+    ${libnetwork}
+    ${libinternet}
+    ${libwifi}
+    ${libmobility}
+    ${libapplications}
+    ${libenergy}
+    ${libaodv}
+    ${libnetanim}
+)
+
+build_example(
   NAME scratch-simulator
   SOURCE_FILES scratch-simulator.cc
   LIBRARIES_TO_LINK ${libcore}

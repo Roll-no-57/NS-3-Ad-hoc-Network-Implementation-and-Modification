@@ -1493,17 +1493,21 @@ RoutingProtocol::RecvRequest(Ptr<Packet> p, Ipv4Address receiver, Ipv4Address sr
     if (isDuplicateRreq)
     {
         RoutingTableEntry existingToOrigin;
-        if (!m_routingTable.LookupRoute(origin, existingToOrigin))
+        if (m_routingTable.LookupRoute(origin, existingToOrigin))
         {
-            NS_LOG_DEBUG("Ignoring duplicate RREQ due to missing reverse route");
-            return;
+            if (pathFitness <= existingToOrigin.GetFitness())
+            {
+                NS_LOG_DEBUG("Ignoring duplicate RREQ due to non-improving fitness");
+                return;
+            }
+            NS_LOG_DEBUG("Processing duplicate RREQ with improved fitness");
         }
-        if (pathFitness <= existingToOrigin.GetFitness())
+        else
         {
-            NS_LOG_DEBUG("Ignoring duplicate RREQ due to non-improving fitness");
-            return;
+            // Keep the duplicate if no reverse route entry exists yet; this allows
+            // reverse-route creation before applying fitness-based comparisons.
+            NS_LOG_DEBUG("Processing duplicate RREQ without reverse route entry");
         }
-        NS_LOG_DEBUG("Processing duplicate RREQ with improved fitness");
     }
 
     /*

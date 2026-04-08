@@ -120,6 +120,21 @@ build_example(
 )
 
 build_example(
+  NAME sim-fanet-phase1-bonus
+  SOURCE_FILES sim-fanet-phase1-bonus.cc
+  LIBRARIES_TO_LINK
+    ${libcore}
+    ${libnetwork}
+    ${libinternet}
+    ${libwifi}
+    ${libmobility}
+    ${libapplications}
+    ${libenergy}
+    ${libaodv}
+    ${libflow-monitor}
+)
+
+build_example(
   NAME scratch-simulator
   SOURCE_FILES scratch-simulator.cc
   LIBRARIES_TO_LINK ${libcore}

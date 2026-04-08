@@ -1112,7 +1112,13 @@ RoutingProtocol::SendRequest(Ipv4Address dst)
     // A node SHOULD NOT originate more than RREQ_RATELIMIT RREQ messages per second.
     if (m_rreqCount == m_rreqRateLimit)
     {
-        Simulator::Schedule(m_rreqRateLimitTimer.GetDelayLeft() + MicroSeconds(100),
+        // Guard against timer jitter/ordering where remaining delay can be <= 0.
+        Time delay = m_rreqRateLimitTimer.GetDelayLeft() + MicroSeconds(100);
+        if (delay <= Time(Seconds(0)))
+        {
+            delay = MicroSeconds(100);
+        }
+        Simulator::Schedule(delay,
                             &RoutingProtocol::SendRequest,
                             this,
                             dst);
@@ -1254,19 +1260,47 @@ RoutingProtocol::ScheduleRreqRetry(Ipv4Address dst)
     m_addressReqTimer[dst].Cancel();
     m_addressReqTimer[dst].SetArguments(dst);
     RoutingTableEntry rt;
-    m_routingTable.LookupRoute(dst, rt);
+    bool hasRoute = m_routingTable.LookupRoute(dst, rt);
     Time retry;
-    if (rt.GetHop() < m_netDiameter)
+    if (!hasRoute)
+    {
+        NS_LOG_WARN("No route entry for " << dst
+                                           << " while scheduling RREQ retry; using net traversal time");
+        retry = m_netTraversalTime;
+    }
+    else if (rt.GetHop() < m_netDiameter)
     {
         retry = 2 * m_nodeTraversalTime * (rt.GetHop() + m_timeoutBuffer);
     }
     else
     {
-        NS_ABORT_MSG_UNLESS(rt.GetRreqCnt() > 0, "Unexpected value for GetRreqCount ()");
-        uint16_t backoffFactor = rt.GetRreqCnt() - 1;
+        uint16_t rreqCount = rt.GetRreqCnt();
+        if (rreqCount == 0)
+        {
+            NS_LOG_WARN("RREQ count is zero at max TTL for " << dst
+                                                              << "; treating as first retry");
+            rreqCount = 1;
+        }
+
+        uint16_t backoffFactor = rreqCount - 1;
+        const uint16_t maxBackoffFactor = 30;
+        if (backoffFactor > maxBackoffFactor)
+        {
+            NS_LOG_WARN("Capping RREQ backoff factor from " << backoffFactor << " to "
+                                                           << maxBackoffFactor);
+            backoffFactor = maxBackoffFactor;
+        }
         NS_LOG_LOGIC("Applying binary exponential backoff factor " << backoffFactor);
-        retry = m_netTraversalTime * (1 << backoffFactor);
+        uint64_t backoffMultiplier = uint64_t(1) << backoffFactor;
+        retry = m_netTraversalTime * backoffMultiplier;
     }
+
+    if (retry <= Time(Seconds(0)))
+    {
+        NS_LOG_WARN("Computed non-positive RREQ retry delay; using 1ms fallback");
+        retry = MilliSeconds(1);
+    }
+
     m_addressReqTimer[dst].Schedule(retry);
     NS_LOG_LOGIC("Scheduled RREQ retry in " << retry.As(Time::S));
 }

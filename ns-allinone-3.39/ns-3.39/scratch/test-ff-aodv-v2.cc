@@ -10,13 +10,13 @@
 
 using namespace ns3;
 
-NS_LOG_COMPONENT_DEFINE("TestFfAodvPhase1");
+NS_LOG_COMPONENT_DEFINE("TestFfAodvPhase2");
 
 int
 main(int argc, char* argv[])
 {
-    uint32_t nNodes = 10;
-    double simTime = 30.0;
+    uint32_t nNodes = 15;
+    double simTime = 60.0;
     bool verbose = false;
 
     CommandLine cmd(__FILE__);
@@ -45,12 +45,12 @@ main(int argc, char* argv[])
     mac.SetType("ns3::AdhocWifiMac");
 
     YansWifiPhyHelper phy;
-    phy.Set("TxPowerStart", DoubleValue(17.0));
-    phy.Set("TxPowerEnd", DoubleValue(17.0));
+    phy.Set("TxPowerStart", DoubleValue(18.0));
+    phy.Set("TxPowerEnd", DoubleValue(18.0));
 
     YansWifiChannelHelper channel;
     channel.SetPropagationDelay("ns3::ConstantSpeedPropagationDelayModel");
-    channel.AddPropagationLoss("ns3::RangePropagationLossModel", "MaxRange", DoubleValue(120.0));
+    channel.AddPropagationLoss("ns3::RangePropagationLossModel", "MaxRange", DoubleValue(180.0));
     phy.SetChannel(channel.Create());
 
     NetDeviceContainer devices = wifi.Install(phy, mac, nodes);
@@ -58,14 +58,14 @@ main(int argc, char* argv[])
     MobilityHelper mobility;
     mobility.SetPositionAllocator("ns3::RandomRectanglePositionAllocator",
                                   "X",
-                                  StringValue("ns3::UniformRandomVariable[Min=0|Max=250]"),
+                                  StringValue("ns3::UniformRandomVariable[Min=0|Max=500]"),
                                   "Y",
-                                  StringValue("ns3::UniformRandomVariable[Min=0|Max=250]"));
+                                  StringValue("ns3::UniformRandomVariable[Min=0|Max=500]"));
     mobility.SetMobilityModel("ns3::GaussMarkovMobilityModel",
                               "Bounds",
-                              BoxValue(Box(0, 250, 0, 250, 0, 0)),
+                              BoxValue(Box(0, 500, 0, 500, 0, 0)),
                               "MeanVelocity",
-                              StringValue("ns3::UniformRandomVariable[Min=5|Max=15]"),
+                              StringValue("ns3::UniformRandomVariable[Min=20|Max=50]"),
                               "MeanDirection",
                               StringValue("ns3::UniformRandomVariable[Min=0|Max=6.283185]"));
     mobility.Install(nodes);
@@ -81,9 +81,9 @@ main(int argc, char* argv[])
     }
 
     AodvHelper aodv;
-    aodv.Set("Alpha", DoubleValue(0.6));
-    aodv.Set("Beta", DoubleValue(0.4));
-    aodv.Set("Gamma", DoubleValue(0.0));
+    aodv.Set("Alpha", DoubleValue(0.5));
+    aodv.Set("Beta", DoubleValue(0.3));
+    aodv.Set("Gamma", DoubleValue(0.2));
     aodv.Set("InitialEnergy", DoubleValue(100.0));
     aodv.Set("MaxVelocity", DoubleValue(50.0));
     aodv.Set("EnableHello", BooleanValue(true));
@@ -96,21 +96,36 @@ main(int argc, char* argv[])
     ipv4.SetBase("10.1.1.0", "255.255.255.0");
     Ipv4InterfaceContainer interfaces = ipv4.Assign(devices);
 
-    uint16_t port = 9000;
-    PacketSinkHelper sinkHelper("ns3::UdpSocketFactory",
-                                InetSocketAddress(Ipv4Address::GetAny(), port));
-    ApplicationContainer sinkApps = sinkHelper.Install(nodes.Get(nNodes - 1));
+    uint16_t p1 = 9000;
+    uint16_t p2 = 9001;
+
+    PacketSinkHelper sink1("ns3::UdpSocketFactory", InetSocketAddress(Ipv4Address::GetAny(), p1));
+    PacketSinkHelper sink2("ns3::UdpSocketFactory", InetSocketAddress(Ipv4Address::GetAny(), p2));
+
+    ApplicationContainer sinkApps;
+    sinkApps.Add(sink1.Install(nodes.Get(nNodes - 1)));
+    sinkApps.Add(sink2.Install(nodes.Get(nNodes - 2)));
     sinkApps.Start(Seconds(0.0));
     sinkApps.Stop(Seconds(simTime));
 
-    OnOffHelper onoff("ns3::UdpSocketFactory",
-                      InetSocketAddress(interfaces.GetAddress(nNodes - 1), port));
-    onoff.SetAttribute("DataRate", StringValue("96kbps"));
-    onoff.SetAttribute("PacketSize", UintegerValue(512));
-    onoff.SetAttribute("OnTime", StringValue("ns3::ConstantRandomVariable[Constant=1.0]"));
-    onoff.SetAttribute("OffTime", StringValue("ns3::ConstantRandomVariable[Constant=0.0]"));
-    ApplicationContainer srcApps = onoff.Install(nodes.Get(0));
-    srcApps.Start(Seconds(2.0));
+    OnOffHelper flow1("ns3::UdpSocketFactory",
+                      InetSocketAddress(interfaces.GetAddress(nNodes - 1), p1));
+    flow1.SetAttribute("DataRate", StringValue("128kbps"));
+    flow1.SetAttribute("PacketSize", UintegerValue(512));
+    flow1.SetAttribute("OnTime", StringValue("ns3::ConstantRandomVariable[Constant=1.0]"));
+    flow1.SetAttribute("OffTime", StringValue("ns3::ConstantRandomVariable[Constant=0.0]"));
+
+    OnOffHelper flow2("ns3::UdpSocketFactory",
+                      InetSocketAddress(interfaces.GetAddress(nNodes - 2), p2));
+    flow2.SetAttribute("DataRate", StringValue("128kbps"));
+    flow2.SetAttribute("PacketSize", UintegerValue(512));
+    flow2.SetAttribute("OnTime", StringValue("ns3::ConstantRandomVariable[Constant=1.0]"));
+    flow2.SetAttribute("OffTime", StringValue("ns3::ConstantRandomVariable[Constant=0.0]"));
+
+    ApplicationContainer srcApps;
+    srcApps.Add(flow1.Install(nodes.Get(0)));
+    srcApps.Add(flow2.Install(nodes.Get(1)));
+    srcApps.Start(Seconds(5.0));
     srcApps.Stop(Seconds(simTime - 1.0));
 
     FlowMonitorHelper flowHelper;
@@ -123,19 +138,20 @@ main(int argc, char* argv[])
     Ptr<Ipv4FlowClassifier> classifier = DynamicCast<Ipv4FlowClassifier>(flowHelper.GetClassifier());
     FlowMonitor::FlowStatsContainer stats = flowMonitor->GetFlowStats();
 
-    std::cout << "=== FF-AODV Phase 1 (Energy + Hop Fitness) ===\n";
-    std::cout << "Alpha=" << 0.6 << " Beta=" << 0.4 << " Gamma=" << 0.0 << "\n";
+    std::cout << "=== FF-AODV Phase 2 (Energy + Hop + Velocity Fitness) ===\n";
+    std::cout << "Alpha=" << 0.5 << " Beta=" << 0.3 << " Gamma=" << 0.2
+              << " MaxVelocity=" << 50.0 << "\n";
 
     for (const auto& entry : stats)
     {
         auto tuple = classifier->FindFlow(entry.first);
-        if (tuple.protocol != 17 || tuple.destinationPort != port)
+        if (tuple.protocol != 17 || (tuple.destinationPort != p1 && tuple.destinationPort != p2))
         {
             continue;
         }
 
         std::cout << "Flow " << entry.first << " " << tuple.sourceAddress << " -> "
-                  << tuple.destinationAddress << "\n";
+                  << tuple.destinationAddress << " dPort=" << tuple.destinationPort << "\n";
         std::cout << "  TxPackets=" << entry.second.txPackets
                   << " RxPackets=" << entry.second.rxPackets << "\n";
 

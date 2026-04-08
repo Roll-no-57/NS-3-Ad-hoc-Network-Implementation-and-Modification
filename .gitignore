@@ -4,3 +4,5 @@ ns-allinone-3.39/ns-3.39/cmake-cache/
 *.so
 *.o
 *.gch
+.venv/
+.vscode/

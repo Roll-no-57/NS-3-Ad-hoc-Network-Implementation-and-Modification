@@ -1,0 +1,30 @@
+Experimentation:
+Simulate the following networks with your implemented algorithm as per the assignment:
+Wireless 802.11 (static)  and Wireless 802.15.4 (static)
+In your simulation –
+The number of nodes need to be varied as 20, 40, 60, 80, and 100
+Besides, you need to vary the following parameters –
+Number of flows (10, 20, 30, 40, and 50)
+Number of packets per second (100, 200, 300, 400, and 500)
+Speed of nodes (5 m/s, 10 m/s, 15 m/s, 20 m/s, and 25 m/s) [Only in case of having mobility]
+Coverage area (square coverage are varying one side as Tx_range, 2 x Tx_range, 3 x Tx_range, 4 x Tx_range, and 5 x Tx_range) [Only in case of having static nodes only]
+In all cases, you need to measure the following metrics and plot graphs –
+Network throughput
+End-to-end delay
+Packet delivery ratio (total # of packets delivered to end destination / total # of packets sent)
+Packet drop ratio (total # of packets dropped / total # of packets sent)
+Energy consumption [for wireless nodes]
+
+You need to submit a report mentioning the following-
+Network topologies under simulation
+Parameters under variation
+Modifications made in the simulator
+Results with graphs
+Summary findings
+Reflection on findings i.e., Discussion
+Bonus: There are several places where you can get bonuses. Examples include – 
+Cross transmission of packets, i.e., transmission of packets from one type of node to that of another type (example: simulating a flow n1->n2->…->nx, where the first few nodes are wired and the rest nodes are wireless)
+Simulating any network not mentioned above (for example, 5G, LTE, WiMax, Satellite network, nanonetworks, cognitive radio networks, etc.)
+Measuring any metric not mentioned above (for example, per-node throughput, variation in queue size over time, etc.)
+Any brand new idea with a good performance improvement and not existing in the literature could be worth double bonus!
+[NOTE: It is NOT needed that you will come up with improvement in performance with your modified mechanism. Rather it is needed to make sure what changes you would have done and with what intuition.]

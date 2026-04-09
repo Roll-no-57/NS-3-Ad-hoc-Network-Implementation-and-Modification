@@ -220,7 +220,8 @@ Animxmlparser::doParse ()
           parsedElement.packetrx_fbTx = ref.packetrx_fbTx;
           parsedElement.packetrx_lbTx = ref.packetrx_lbTx;
           parsedElement.meta_info = ref.meta_info;
-          break;
+          // Continue to packet event handling below after resolving TX reference.
+          [[fallthrough]];
         }
         case XML_WPACKET_RX:
         case XML_PACKET_RX:
@@ -617,6 +618,12 @@ Animxmlparser::parsePacketTxRef ()
   parsedElement.packetrx_fromId = m_reader->attributes ().value ("fId").toString ().toUInt ();
   parsedElement.packetrx_fbTx = m_reader->attributes ().value ("fbTx").toString ().toDouble ();
   parsedElement.packetrx_lbTx = m_reader->attributes ().value ("lbTx").toString ().toDouble ();
+  // In reference packet traces (pr/wpr), lbTx can be missing. Fall back to fbTx
+  // so timeline computation remains valid.
+  if (!parsedElement.packetrx_lbTx && parsedElement.packetrx_fbTx)
+    {
+      parsedElement.packetrx_lbTx = parsedElement.packetrx_fbTx;
+    }
   setMaxSimulationTime (parsedElement.packetrx_lbTx);
   parsedElement.meta_info = m_reader->attributes ().value ("meta-info").toString ();
   if (parsedElement.meta_info == "")
@@ -636,6 +643,12 @@ Animxmlparser::parseWPacketRxRef ()
   parsedElement.packetrx_toId = m_reader->attributes ().value ("tId").toString ().toUInt ();
   parsedElement.packetrx_fbRx = m_reader->attributes ().value ("fbRx").toString ().toDouble ();
   parsedElement.packetrx_lbRx = m_reader->attributes ().value ("lbRx").toString ().toDouble ();
+  // In reference packet traces (pr/wpr), lbRx can be 0 while fbRx is valid.
+  // Fall back to fbRx so animator and packet timeline can advance.
+  if (!parsedElement.packetrx_lbRx && parsedElement.packetrx_fbRx)
+    {
+      parsedElement.packetrx_lbRx = parsedElement.packetrx_fbRx;
+    }
   setMaxSimulationTime (parsedElement.packetrx_lbRx);
   return parsedElement;
 }

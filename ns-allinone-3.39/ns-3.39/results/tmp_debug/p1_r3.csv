@@ -1,0 +1,2 @@
+nNodes,nFlows,pktPerSec,speed_mps,throughput_mbps,delay_ms,pdr_pct,pdrop_pct,energy_j
+40,10,100,20,0.167964,103.84,4.14204,94.7199,1966.95

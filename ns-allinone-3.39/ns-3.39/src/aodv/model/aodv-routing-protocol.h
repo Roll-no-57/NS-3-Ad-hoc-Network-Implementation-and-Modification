@@ -42,6 +42,8 @@
 
 #include <map>
 
+#include "ns3/mobility-model.h" // FF-AODV Phase 2: velocity access
+
 namespace ns3
 {
 
@@ -505,12 +507,16 @@ class RoutingProtocol : public Ipv4RoutingProtocol
     Time m_lastBcastTime;
 
     // FF-AODV: fitness function weights
-    double m_alpha;         ///< Weight for energy component (default 0.6)
-    double m_beta;          ///< Weight for hop count component (default 0.4)
+    double m_alpha;         ///< Weight for energy component (default 0.5)
+    double m_beta;          ///< Weight for hop count component (default 0.3)
     double m_initialEnergy; ///< Initial energy of each node in Joules
 
+    // FF-AODV Phase 2: velocity-aware parameters
+    double m_gamma;         ///< Weight for velocity component (default 0.2)
+    double m_maxVelocity;   ///< Maximum expected velocity in m/s (default 50.0)
+
     // FF-AODV: compute fitness score for a path
-    double CalculateFitness(double residualEnergy, uint8_t hopCount) const;
+    double CalculateFitness(double residualEnergy, uint8_t hopCount, double velocity) const;
 };
 
 } // namespace aodv

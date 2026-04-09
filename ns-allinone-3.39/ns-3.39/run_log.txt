@@ -1,0 +1,326 @@
+
+[1m══════════════════════════════════════════[0m
+[1m  STEP 0 — Sanity checks[0m
+[1m══════════════════════════════════════════[0m
+[0;32m[OK][0m    All binaries present.
+[1;33m[WARN][0m  matplotlib/pandas not found — installing …
+[0;32m[OK][0m    Python dependencies OK.
+
+[1m══════════════════════════════════════════[0m
+[1m  STEP 1 — Initialising CSV files[0m
+[1m══════════════════════════════════════════[0m
+[0;36m[INFO][0m  Initialised /media/apurbo/E_Drive/Academy_3_2/CSE_322_CNS/NS_3_Project/ns-allinone-3.39/ns-3.39/results/802_11_static/vary_nodes.csv
+[0;36m[INFO][0m  Initialised /media/apurbo/E_Drive/Academy_3_2/CSE_322_CNS/NS_3_Project/ns-allinone-3.39/ns-3.39/results/802_15_4_static/vary_nodes.csv
+[0;36m[INFO][0m  Initialised /media/apurbo/E_Drive/Academy_3_2/CSE_322_CNS/NS_3_Project/ns-allinone-3.39/ns-3.39/results/802_11_static/vary_flows.csv
+[0;36m[INFO][0m  Initialised /media/apurbo/E_Drive/Academy_3_2/CSE_322_CNS/NS_3_Project/ns-allinone-3.39/ns-3.39/results/802_15_4_static/vary_flows.csv
+[0;36m[INFO][0m  Initialised /media/apurbo/E_Drive/Academy_3_2/CSE_322_CNS/NS_3_Project/ns-allinone-3.39/ns-3.39/results/802_11_static/vary_pps.csv
+[0;36m[INFO][0m  Initialised /media/apurbo/E_Drive/Academy_3_2/CSE_322_CNS/NS_3_Project/ns-allinone-3.39/ns-3.39/results/802_15_4_static/vary_pps.csv
+[0;36m[INFO][0m  Initialised /media/apurbo/E_Drive/Academy_3_2/CSE_322_CNS/NS_3_Project/ns-allinone-3.39/ns-3.39/results/802_11_static/vary_area.csv
+[0;36m[INFO][0m  Initialised /media/apurbo/E_Drive/Academy_3_2/CSE_322_CNS/NS_3_Project/ns-allinone-3.39/ns-3.39/results/802_15_4_static/vary_area.csv
+[0;36m[INFO][0m  Initialised /media/apurbo/E_Drive/Academy_3_2/CSE_322_CNS/NS_3_Project/ns-allinone-3.39/ns-3.39/results/fanet_bonus/vary_speed.csv
+[0;32m[OK][0m    All CSV files initialised.
+
+[1m══════════════════════════════════════════[0m
+[1m  STEP 2 — 802.11b Static simulations (20 runs)[0m
+[1m══════════════════════════════════════════[0m
+
+[0;36m[1/45][0m 802.11 | vary_nodes | nNodes=20
+Nodes=20 Flows=10 PPS=100 Area=1 Tput=0.361312 Mbps Delay=199.618 ms PDR=12.9548% PDRop=80.2068% Energy=1079.81 J
+[0;32m[OK][0m    Done.
+
+[0;36m[2/45][0m 802.11 | vary_nodes | nNodes=40
+Nodes=40 Flows=10 PPS=100 Area=1 Tput=0.487166 Mbps Delay=169.697 ms PDR=18.5277% PDRop=73.344% Energy=2148.41 J
+[0;32m[OK][0m    Done.
+
+[0;36m[3/45][0m 802.11 | vary_nodes | nNodes=60
+Nodes=60 Flows=10 PPS=100 Area=1 Tput=0.420646 Mbps Delay=165.836 ms PDR=19.3612% PDRop=67.3935% Energy=3193.44 J
+[0;32m[OK][0m    Done.
+
+[0;36m[4/45][0m 802.11 | vary_nodes | nNodes=80
+Nodes=80 Flows=10 PPS=100 Area=1 Tput=0.200949 Mbps Delay=147.577 ms PDR=18.7546% PDRop=72.6516% Energy=4221.27 J
+[0;32m[OK][0m    Done.
+
+[0;36m[5/45][0m 802.11 | vary_nodes | nNodes=100
+Nodes=100 Flows=10 PPS=100 Area=1 Tput=0.605477 Mbps Delay=162.614 ms PDR=21.2537% PDRop=67.3544% Energy=5281.27 J
+[0;32m[OK][0m    Done.
+
+[0;36m[6/45][0m 802.11 | vary_flows | nFlows=10
+Nodes=40 Flows=10 PPS=100 Area=1 Tput=0.487166 Mbps Delay=169.697 ms PDR=18.5277% PDRop=73.344% Energy=2148.41 J
+[0;32m[OK][0m    Done.
+
+[0;36m[7/45][0m 802.11 | vary_flows | nFlows=20
+Nodes=40 Flows=20 PPS=100 Area=1 Tput=0.189216 Mbps Delay=146.149 ms PDR=6.34555% PDRop=86.0871% Energy=2138.96 J
+[0;32m[OK][0m    Done.
+
+[0;36m[8/45][0m 802.11 | vary_flows | nFlows=30
+Nodes=40 Flows=30 PPS=100 Area=1 Tput=0.189216 Mbps Delay=146.149 ms PDR=6.34555% PDRop=86.0871% Energy=2138.96 J
+[0;32m[OK][0m    Done.
+
+[0;36m[9/45][0m 802.11 | vary_flows | nFlows=40
+Nodes=40 Flows=40 PPS=100 Area=1 Tput=0.189216 Mbps Delay=146.149 ms PDR=6.34555% PDRop=86.0871% Energy=2138.96 J
+[0;32m[OK][0m    Done.
+
+[0;36m[10/45][0m 802.11 | vary_flows | nFlows=50
+Nodes=40 Flows=50 PPS=100 Area=1 Tput=0.189216 Mbps Delay=146.149 ms PDR=6.34555% PDRop=86.0871% Energy=2138.96 J
+[0;32m[OK][0m    Done.
+
+[0;36m[11/45][0m 802.11 | vary_pps | pktPerSec=100
+Nodes=40 Flows=10 PPS=100 Area=1 Tput=0.487166 Mbps Delay=169.697 ms PDR=18.5277% PDRop=73.344% Energy=2148.41 J
+[0;32m[OK][0m    Done.
+
+[0;36m[12/45][0m 802.11 | vary_pps | pktPerSec=200
+Nodes=40 Flows=10 PPS=200 Area=1 Tput=0.389773 Mbps Delay=149.182 ms PDR=9.26648% PDRop=82.2331% Energy=2146.82 J
+[0;32m[OK][0m    Done.
+
+[0;36m[13/45][0m 802.11 | vary_pps | pktPerSec=300
+Nodes=40 Flows=10 PPS=300 Area=1 Tput=0.438504 Mbps Delay=176.482 ms PDR=6.35792% PDRop=88.558% Energy=2148.12 J
+[0;32m[OK][0m    Done.
+
+[0;36m[14/45][0m 802.11 | vary_pps | pktPerSec=400
+Nodes=40 Flows=10 PPS=400 Area=1 Tput=0.396654 Mbps Delay=126.85 ms PDR=5.15645% PDRop=86.4847% Energy=2137.78 J
+[0;32m[OK][0m    Done.
+
+[0;36m[15/45][0m 802.11 | vary_pps | pktPerSec=500
+Nodes=40 Flows=10 PPS=500 Area=1 Tput=0.529563 Mbps Delay=166.312 ms PDR=4.07222% PDRop=89.0708% Energy=2150.98 J
+[0;32m[OK][0m    Done.
+
+[0;36m[16/45][0m 802.11 | vary_area | areaFactor=1
+Nodes=40 Flows=10 PPS=100 Area=1 Tput=0.487166 Mbps Delay=169.697 ms PDR=18.5277% PDRop=73.344% Energy=2148.41 J
+[0;32m[OK][0m    Done.
+
+[0;36m[17/45][0m 802.11 | vary_area | areaFactor=2
+Nodes=40 Flows=10 PPS=100 Area=2 Tput=0.304661 Mbps Delay=201.835 ms PDR=16.9142% PDRop=77.464% Energy=2116.09 J
+[0;32m[OK][0m    Done.
+
+[0;36m[18/45][0m 802.11 | vary_area | areaFactor=3
+Nodes=40 Flows=10 PPS=100 Area=3 Tput=0.232713 Mbps Delay=154.255 ms PDR=9.07598% PDRop=88.7694% Energy=2044.25 J
+[0;32m[OK][0m    Done.
+
+[0;36m[19/45][0m 802.11 | vary_area | areaFactor=4
+Nodes=40 Flows=10 PPS=100 Area=4 Tput=0 Mbps Delay=0 ms PDR=0% PDRop=98.877% Energy=1967.32 J
+[0;32m[OK][0m    Done.
+
+[0;36m[20/45][0m 802.11 | vary_area | areaFactor=5
+Nodes=40 Flows=10 PPS=100 Area=5 Tput=0 Mbps Delay=0 ms PDR=0% PDRop=98.877% Energy=1966.85 J
+[0;32m[OK][0m    Done.
+[0;32m[OK][0m    802.11 static simulations complete.
+
+[1m══════════════════════════════════════════[0m
+[1m  STEP 3 — 802.15.4 Static simulations (20 runs)[0m
+[1m══════════════════════════════════════════[0m
+
+[0;36m[21/45][0m 802.15.4 | vary_nodes | nNodes=20
+Nodes=20 Flows=10 PPS=100 Area=1 Tput=0.25657 Mbps Delay=253.406 ms PDR=30.3209% PDRop=57.6231% Energy=1068.69 J
+[0;32m[OK][0m    Done.
+
+[0;36m[22/45][0m 802.15.4 | vary_nodes | nNodes=40
+Nodes=40 Flows=10 PPS=100 Area=1 Tput=0.249882 Mbps Delay=181.45 ms PDR=26.9593% PDRop=64.2845% Energy=2119.05 J
+[0;32m[OK][0m    Done.
+
+[0;36m[23/45][0m 802.15.4 | vary_nodes | nNodes=60
+Nodes=60 Flows=10 PPS=100 Area=1 Tput=0.25758 Mbps Delay=192.851 ms PDR=24.8044% PDRop=63.3215% Energy=3167.56 J
+[0;32m[OK][0m    Done.
+
+[0;36m[24/45][0m 802.15.4 | vary_nodes | nNodes=80
+Nodes=80 Flows=10 PPS=100 Area=1 Tput=0.193481 Mbps Delay=92.6915 ms PDR=17.2115% PDRop=74.9569% Energy=4203.23 J
+[0;32m[OK][0m    Done.
+
+[0;36m[25/45][0m 802.15.4 | vary_nodes | nNodes=100
+Nodes=100 Flows=10 PPS=100 Area=1 Tput=0.285983 Mbps Delay=122.674 ms PDR=25.3432% PDRop=64.0582% Energy=5245.56 J
+[0;32m[OK][0m    Done.
+
+[0;36m[26/45][0m 802.15.4 | vary_flows | nFlows=10
+Nodes=40 Flows=10 PPS=100 Area=1 Tput=0.249882 Mbps Delay=181.45 ms PDR=26.9593% PDRop=64.2845% Energy=2119.05 J
+[0;32m[OK][0m    Done.
+
+[0;36m[27/45][0m 802.15.4 | vary_flows | nFlows=20
+Nodes=40 Flows=20 PPS=100 Area=1 Tput=0.186109 Mbps Delay=123.123 ms PDR=12.4529% PDRop=75.1135% Energy=2121.51 J
+[0;32m[OK][0m    Done.
+
+[0;36m[28/45][0m 802.15.4 | vary_flows | nFlows=30
+Nodes=40 Flows=30 PPS=100 Area=1 Tput=0.186109 Mbps Delay=123.123 ms PDR=12.4529% PDRop=75.1135% Energy=2121.51 J
+[0;32m[OK][0m    Done.
+
+[0;36m[29/45][0m 802.15.4 | vary_flows | nFlows=40
+Nodes=40 Flows=40 PPS=100 Area=1 Tput=0.186109 Mbps Delay=123.123 ms PDR=12.4529% PDRop=75.1135% Energy=2121.51 J
+[0;32m[OK][0m    Done.
+
+[0;36m[30/45][0m 802.15.4 | vary_flows | nFlows=50
+Nodes=40 Flows=50 PPS=100 Area=1 Tput=0.186109 Mbps Delay=123.123 ms PDR=12.4529% PDRop=75.1135% Energy=2121.51 J
+[0;32m[OK][0m    Done.
+
+[0;36m[31/45][0m 802.15.4 | vary_pps | pktPerSec=100
+Nodes=40 Flows=10 PPS=100 Area=1 Tput=0.249882 Mbps Delay=181.45 ms PDR=26.9593% PDRop=64.2845% Energy=2119.05 J
+[0;32m[OK][0m    Done.
+
+[0;36m[32/45][0m 802.15.4 | vary_pps | pktPerSec=200
+Nodes=40 Flows=10 PPS=200 Area=1 Tput=0.243661 Mbps Delay=181.747 ms PDR=16.3205% PDRop=73.176% Energy=2121.78 J
+[0;32m[OK][0m    Done.
+
+[0;36m[33/45][0m 802.15.4 | vary_pps | pktPerSec=300
+Nodes=40 Flows=10 PPS=300 Area=1 Tput=0.288745 Mbps Delay=187.912 ms PDR=13.2091% PDRop=76.7687% Energy=2121.65 J
+[0;32m[OK][0m    Done.
+
+[0;36m[34/45][0m 802.15.4 | vary_pps | pktPerSec=400
+Nodes=40 Flows=10 PPS=400 Area=1 Tput=0.248474 Mbps Delay=178.586 ms PDR=9.32146% PDRop=81.994% Energy=2121.43 J
+[0;32m[OK][0m    Done.
+
+[0;36m[35/45][0m 802.15.4 | vary_pps | pktPerSec=500
+Nodes=40 Flows=10 PPS=500 Area=1 Tput=0.248441 Mbps Delay=143.06 ms PDR=7.23052% PDRop=82.7383% Energy=2123.15 J
+[0;32m[OK][0m    Done.
+
+[0;36m[36/45][0m 802.15.4 | vary_area | areaFactor=1
+Nodes=40 Flows=10 PPS=100 Area=1 Tput=0.249882 Mbps Delay=181.45 ms PDR=26.9593% PDRop=64.2845% Energy=2119.05 J
+[0;32m[OK][0m    Done.
+
+[0;36m[37/45][0m 802.15.4 | vary_area | areaFactor=2
+Nodes=40 Flows=10 PPS=100 Area=2 Tput=0.213861 Mbps Delay=193.172 ms PDR=28.5854% PDRop=66.145% Energy=2099.41 J
+[0;32m[OK][0m    Done.
+
+[0;36m[38/45][0m 802.15.4 | vary_area | areaFactor=3
+Nodes=40 Flows=10 PPS=100 Area=3 Tput=0.191604 Mbps Delay=154.538 ms PDR=25.2295% PDRop=74.0208% Energy=2054.21 J
+[0;32m[OK][0m    Done.
+
+[0;36m[39/45][0m 802.15.4 | vary_area | areaFactor=4
+Nodes=40 Flows=10 PPS=100 Area=4 Tput=0.0798093 Mbps Delay=15.4235 ms PDR=9.73796% PDRop=89.2518% Energy=2001.98 J
+[0;32m[OK][0m    Done.
+
+[0;36m[40/45][0m 802.15.4 | vary_area | areaFactor=5
+Nodes=40 Flows=10 PPS=100 Area=5 Tput=0 Mbps Delay=0 ms PDR=0% PDRop=98.877% Energy=1967.07 J
+[0;32m[OK][0m    Done.
+[0;32m[OK][0m    802.15.4 static simulations complete.
+
+[1m══════════════════════════════════════════[0m
+[1m  STEP 4 — BONUS: FF-AODV FANET simulations (5 runs)[0m
+[1m══════════════════════════════════════════[0m
+
+[0;36m[41/45][0m FANET | vary_speed | speed=5 m/s
+Speed=5 Tput=0 Mbps Delay=0 ms PDR=0% PDRop=98.877% Energy=1965.79 J
+[0;32m[OK][0m    Done.
+
+[0;36m[42/45][0m FANET | vary_speed | speed=10 m/s
+Speed=10 Tput=2.10667e-05 Mbps Delay=1.12909 ms PDR=0.00526371% PDRop=98.7578% Energy=1965.83 J
+[0;32m[OK][0m    Done.
+
+[0;36m[43/45][0m FANET | vary_speed | speed=15 m/s
+Speed=15 Tput=0.0691496 Mbps Delay=73.6975 ms PDR=1.69141% PDRop=97.233% Energy=1966.47 J
+[0;32m[OK][0m    Done.
+
+[0;36m[44/45][0m FANET | vary_speed | speed=20 m/s
+Speed=20 Tput=3.04e-05 Mbps Delay=88.9941 ms PDR=0.00877193% PDRop=98.0333% Energy=1966 J
+[0;32m[OK][0m    Done.
+
+[0;36m[45/45][0m FANET | vary_speed | speed=25 m/s
+Speed=25 Tput=0.0802685 Mbps Delay=21.1605 ms PDR=2.00796% PDRop=96.796% Energy=1966.4 J
+[0;32m[OK][0m    Done.
+[0;32m[OK][0m    FANET bonus simulations complete.
+
+[1m══════════════════════════════════════════[0m
+[1m  STEP 5 — Verifying CSV output[0m
+[1m══════════════════════════════════════════[0m
+[0;32m[OK][0m    /media/apurbo/E_Drive/Academy_3_2/CSE_322_CNS/NS_3_Project/ns-allinone-3.39/ns-3.39/results/802_11_static/vary_nodes.csv — 5 data row(s)
+[0;32m[OK][0m    /media/apurbo/E_Drive/Academy_3_2/CSE_322_CNS/NS_3_Project/ns-allinone-3.39/ns-3.39/results/802_11_static/vary_flows.csv — 5 data row(s)
+[0;32m[OK][0m    /media/apurbo/E_Drive/Academy_3_2/CSE_322_CNS/NS_3_Project/ns-allinone-3.39/ns-3.39/results/802_11_static/vary_pps.csv — 5 data row(s)
+[0;32m[OK][0m    /media/apurbo/E_Drive/Academy_3_2/CSE_322_CNS/NS_3_Project/ns-allinone-3.39/ns-3.39/results/802_11_static/vary_area.csv — 5 data row(s)
+[0;32m[OK][0m    /media/apurbo/E_Drive/Academy_3_2/CSE_322_CNS/NS_3_Project/ns-allinone-3.39/ns-3.39/results/802_15_4_static/vary_nodes.csv — 5 data row(s)
+[0;32m[OK][0m    /media/apurbo/E_Drive/Academy_3_2/CSE_322_CNS/NS_3_Project/ns-allinone-3.39/ns-3.39/results/802_15_4_static/vary_flows.csv — 5 data row(s)
+[0;32m[OK][0m    /media/apurbo/E_Drive/Academy_3_2/CSE_322_CNS/NS_3_Project/ns-allinone-3.39/ns-3.39/results/802_15_4_static/vary_pps.csv — 5 data row(s)
+[0;32m[OK][0m    /media/apurbo/E_Drive/Academy_3_2/CSE_322_CNS/NS_3_Project/ns-allinone-3.39/ns-3.39/results/802_15_4_static/vary_area.csv — 5 data row(s)
+[0;32m[OK][0m    /media/apurbo/E_Drive/Academy_3_2/CSE_322_CNS/NS_3_Project/ns-allinone-3.39/ns-3.39/results/fanet_bonus/vary_speed.csv — 5 data row(s)
+
+[1m══════════════════════════════════════════[0m
+[1m  STEP 6 — Generating graphs with plot_graphs.py[0m
+[1m══════════════════════════════════════════[0m
+
+── Generating 802.11 Static Graphs ──
+  Saved: graphs/802_11/vary_nodes_throughput.png
+  Saved: graphs/802_11/vary_nodes_delay.png
+  Saved: graphs/802_11/vary_nodes_pdr.png
+  Saved: graphs/802_11/vary_nodes_pdrop.png
+  Saved: graphs/802_11/vary_nodes_energy.png
+  Saved: graphs/802_11/vary_flows_throughput.png
+  Saved: graphs/802_11/vary_flows_delay.png
+  Saved: graphs/802_11/vary_flows_pdr.png
+  Saved: graphs/802_11/vary_flows_pdrop.png
+  Saved: graphs/802_11/vary_flows_energy.png
+  Saved: graphs/802_11/vary_pps_throughput.png
+  Saved: graphs/802_11/vary_pps_delay.png
+  Saved: graphs/802_11/vary_pps_pdr.png
+  Saved: graphs/802_11/vary_pps_pdrop.png
+  Saved: graphs/802_11/vary_pps_energy.png
+  Saved: graphs/802_11/vary_area_throughput.png
+  Saved: graphs/802_11/vary_area_delay.png
+  Saved: graphs/802_11/vary_area_pdr.png
+  Saved: graphs/802_11/vary_area_pdrop.png
+  Saved: graphs/802_11/vary_area_energy.png
+
+── Generating 802.15.4 Emulation Static Graphs ──
+  Saved: graphs/802_15_4/vary_nodes_throughput.png
+  Saved: graphs/802_15_4/vary_nodes_delay.png
+  Saved: graphs/802_15_4/vary_nodes_pdr.png
+  Saved: graphs/802_15_4/vary_nodes_pdrop.png
+  Saved: graphs/802_15_4/vary_nodes_energy.png
+  Saved: graphs/802_15_4/vary_flows_throughput.png
+  Saved: graphs/802_15_4/vary_flows_delay.png
+  Saved: graphs/802_15_4/vary_flows_pdr.png
+  Saved: graphs/802_15_4/vary_flows_pdrop.png
+  Saved: graphs/802_15_4/vary_flows_energy.png
+  Saved: graphs/802_15_4/vary_pps_throughput.png
+  Saved: graphs/802_15_4/vary_pps_delay.png
+  Saved: graphs/802_15_4/vary_pps_pdr.png
+  Saved: graphs/802_15_4/vary_pps_pdrop.png
+  Saved: graphs/802_15_4/vary_pps_energy.png
+  Saved: graphs/802_15_4/vary_area_throughput.png
+  Saved: graphs/802_15_4/vary_area_delay.png
+  Saved: graphs/802_15_4/vary_area_pdr.png
+  Saved: graphs/802_15_4/vary_area_pdrop.png
+  Saved: graphs/802_15_4/vary_area_energy.png
+
+── Generating Comparison Graphs (802.11 vs 802.15.4) ──
+  Saved: graphs/combined/vary_nodes_throughput_compare.png
+  Saved: graphs/combined/vary_nodes_delay_compare.png
+  Saved: graphs/combined/vary_nodes_pdr_compare.png
+  Saved: graphs/combined/vary_nodes_pdrop_compare.png
+  Saved: graphs/combined/vary_nodes_energy_compare.png
+  Saved: graphs/combined/vary_flows_throughput_compare.png
+  Saved: graphs/combined/vary_flows_delay_compare.png
+  Saved: graphs/combined/vary_flows_pdr_compare.png
+  Saved: graphs/combined/vary_flows_pdrop_compare.png
+  Saved: graphs/combined/vary_flows_energy_compare.png
+  Saved: graphs/combined/vary_pps_throughput_compare.png
+  Saved: graphs/combined/vary_pps_delay_compare.png
+  Saved: graphs/combined/vary_pps_pdr_compare.png
+  Saved: graphs/combined/vary_pps_pdrop_compare.png
+  Saved: graphs/combined/vary_pps_energy_compare.png
+  Saved: graphs/combined/vary_area_throughput_compare.png
+  Saved: graphs/combined/vary_area_delay_compare.png
+  Saved: graphs/combined/vary_area_pdr_compare.png
+  Saved: graphs/combined/vary_area_pdrop_compare.png
+  Saved: graphs/combined/vary_area_energy_compare.png
+
+── Generating BONUS: FF-AODV FANET Graphs ──
+  Saved: graphs/fanet/vary_speed_throughput.png
+  Saved: graphs/fanet/vary_speed_delay.png
+  Saved: graphs/fanet/vary_speed_pdr.png
+  Saved: graphs/fanet/vary_speed_pdrop.png
+  Saved: graphs/fanet/vary_speed_energy.png
+
+✅ All graphs generated.
+   Check the 'graphs/' directory for PNG output files.
+
+[1m══════════════════════════════════════════[0m
+[1m  STEP 7 — Summary[0m
+[1m══════════════════════════════════════════[0m
+
+[0;36m[INFO][0m  Simulation results:
+  /media/apurbo/E_Drive/Academy_3_2/CSE_322_CNS/NS_3_Project/ns-allinone-3.39/ns-3.39/results/802_11_static/
+  /media/apurbo/E_Drive/Academy_3_2/CSE_322_CNS/NS_3_Project/ns-allinone-3.39/ns-3.39/results/802_15_4_static/
+  /media/apurbo/E_Drive/Academy_3_2/CSE_322_CNS/NS_3_Project/ns-allinone-3.39/ns-3.39/results/fanet_bonus/
+
+[0;36m[INFO][0m  Generated graphs:
+  /media/apurbo/E_Drive/Academy_3_2/CSE_322_CNS/NS_3_Project/ns-allinone-3.39/ns-3.39/graphs/802_11/     (20 graphs — 802.11b static)
+  /media/apurbo/E_Drive/Academy_3_2/CSE_322_CNS/NS_3_Project/ns-allinone-3.39/ns-3.39/graphs/802_15_4/   (20 graphs — 802.15.4 emulation static)
+  /media/apurbo/E_Drive/Academy_3_2/CSE_322_CNS/NS_3_Project/ns-allinone-3.39/ns-3.39/graphs/combined/   (20 graphs — 802.11 vs 802.15.4 overlays)
+  /media/apurbo/E_Drive/Academy_3_2/CSE_322_CNS/NS_3_Project/ns-allinone-3.39/ns-3.39/graphs/fanet/      ( 5 graphs — FF-AODV FANET bonus)
+
+[0;32m[1mAll done! Total graphs: 65 (45 mandatory + 20 combined comparison)[0m

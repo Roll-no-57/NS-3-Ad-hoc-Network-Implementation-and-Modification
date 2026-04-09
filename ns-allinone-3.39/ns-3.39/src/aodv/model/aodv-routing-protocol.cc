@@ -50,6 +50,7 @@
 #include "ns3/wifi-net-device.h"
 
 #include <algorithm>
+#include <cmath>
 #include <limits>
 
 namespace ns3
@@ -182,9 +183,11 @@ RoutingProtocol::RoutingProtocol()
       m_rreqRateLimitTimer(Timer::CANCEL_ON_DESTROY),
       m_rerrRateLimitTimer(Timer::CANCEL_ON_DESTROY),
       m_lastBcastTime(Seconds(0)),
-      m_alpha(0.6),
-      m_beta(0.4),
-      m_initialEnergy(100.0)
+      m_alpha(0.5),
+      m_beta(0.3),
+      m_initialEnergy(100.0),
+      m_gamma(0.2),
+      m_maxVelocity(50.0)
 {
     m_nb.SetCallback(MakeCallback(&RoutingProtocol::SendRerrWhenBreaksLinkToNextHop, this));
 }
@@ -346,18 +349,29 @@ RoutingProtocol::GetTypeId()
             // FF-AODV attributes
             .AddAttribute("Alpha",
                           "Weight for energy in fitness function",
-                          DoubleValue(0.6),
+                          DoubleValue(0.5),
                           MakeDoubleAccessor(&RoutingProtocol::m_alpha),
                           MakeDoubleChecker<double>(0.0, 1.0))
             .AddAttribute("Beta",
                           "Weight for hop count in fitness function",
-                          DoubleValue(0.4),
+                          DoubleValue(0.3),
                           MakeDoubleAccessor(&RoutingProtocol::m_beta),
                           MakeDoubleChecker<double>(0.0, 1.0))
             .AddAttribute("InitialEnergy",
                           "Initial energy of each node in Joules",
                           DoubleValue(100.0),
                           MakeDoubleAccessor(&RoutingProtocol::m_initialEnergy),
+                          MakeDoubleChecker<double>(0.0))
+            // FF-AODV Phase 2: velocity-aware attributes
+            .AddAttribute("Gamma",
+                          "Weight for velocity component in fitness function",
+                          DoubleValue(0.2),
+                          MakeDoubleAccessor(&RoutingProtocol::m_gamma),
+                          MakeDoubleChecker<double>(0.0, 1.0))
+            .AddAttribute("MaxVelocity",
+                          "Maximum expected velocity in m/s for fitness normalization",
+                          DoubleValue(50.0),
+                          MakeDoubleAccessor(&RoutingProtocol::m_maxVelocity),
                           MakeDoubleChecker<double>(0.0));
     return tid;
 }
@@ -380,9 +394,9 @@ RoutingProtocol::~RoutingProtocol()
 {
 }
 
-// FF-AODV: Compute fitness = alpha * (Eresidual / Einitial) + beta * (1 / hopCount)
+// FF-AODV: Compute fitness = alpha * (Eresidual / Einitial) + beta * (1 / hopCount) + gamma * ((Vmax - V) / Vmax)
 double
-RoutingProtocol::CalculateFitness(double residualEnergy, uint8_t hopCount) const
+RoutingProtocol::CalculateFitness(double residualEnergy, uint8_t hopCount, double velocity) const
 {
     double energyRatio = 0.0;
     if (m_initialEnergy > 0.0)
@@ -394,7 +408,14 @@ RoutingProtocol::CalculateFitness(double residualEnergy, uint8_t hopCount) const
     {
         hopFactor = 1.0 / static_cast<double>(hopCount);
     }
-    return m_alpha * energyRatio + m_beta * hopFactor;
+    // Phase 2: velocity penalty — slower nodes get higher fitness
+    double velocityFactor = 0.0;
+    if (m_maxVelocity > 0.0)
+    {
+        double clampedVelocity = std::min(velocity, m_maxVelocity);
+        velocityFactor = (m_maxVelocity - clampedVelocity) / m_maxVelocity;
+    }
+    return m_alpha * energyRatio + m_beta * hopFactor + m_gamma * velocityFactor;
 }
 
 void
@@ -1091,7 +1112,13 @@ RoutingProtocol::SendRequest(Ipv4Address dst)
     // A node SHOULD NOT originate more than RREQ_RATELIMIT RREQ messages per second.
     if (m_rreqCount == m_rreqRateLimit)
     {
-        Simulator::Schedule(m_rreqRateLimitTimer.GetDelayLeft() + MicroSeconds(100),
+        // Guard against timer jitter/ordering where remaining delay can be <= 0.
+        Time delay = m_rreqRateLimitTimer.GetDelayLeft() + MicroSeconds(100);
+        if (delay <= Time(Seconds(0)))
+        {
+            delay = MicroSeconds(100);
+        }
+        Simulator::Schedule(delay,
                             &RoutingProtocol::SendRequest,
                             this,
                             dst);
@@ -1233,19 +1260,47 @@ RoutingProtocol::ScheduleRreqRetry(Ipv4Address dst)
     m_addressReqTimer[dst].Cancel();
     m_addressReqTimer[dst].SetArguments(dst);
     RoutingTableEntry rt;
-    m_routingTable.LookupRoute(dst, rt);
+    bool hasRoute = m_routingTable.LookupRoute(dst, rt);
     Time retry;
-    if (rt.GetHop() < m_netDiameter)
+    if (!hasRoute)
+    {
+        NS_LOG_WARN("No route entry for " << dst
+                                           << " while scheduling RREQ retry; using net traversal time");
+        retry = m_netTraversalTime;
+    }
+    else if (rt.GetHop() < m_netDiameter)
     {
         retry = 2 * m_nodeTraversalTime * (rt.GetHop() + m_timeoutBuffer);
     }
     else
     {
-        NS_ABORT_MSG_UNLESS(rt.GetRreqCnt() > 0, "Unexpected value for GetRreqCount ()");
-        uint16_t backoffFactor = rt.GetRreqCnt() - 1;
+        uint16_t rreqCount = rt.GetRreqCnt();
+        if (rreqCount == 0)
+        {
+            NS_LOG_WARN("RREQ count is zero at max TTL for " << dst
+                                                              << "; treating as first retry");
+            rreqCount = 1;
+        }
+
+        uint16_t backoffFactor = rreqCount - 1;
+        const uint16_t maxBackoffFactor = 30;
+        if (backoffFactor > maxBackoffFactor)
+        {
+            NS_LOG_WARN("Capping RREQ backoff factor from " << backoffFactor << " to "
+                                                           << maxBackoffFactor);
+            backoffFactor = maxBackoffFactor;
+        }
         NS_LOG_LOGIC("Applying binary exponential backoff factor " << backoffFactor);
-        retry = m_netTraversalTime * (1 << backoffFactor);
+        uint64_t backoffMultiplier = uint64_t(1) << backoffFactor;
+        retry = m_netTraversalTime * backoffMultiplier;
     }
+
+    if (retry <= Time(Seconds(0)))
+    {
+        NS_LOG_WARN("Computed non-positive RREQ retry delay; using 1ms fallback");
+        retry = MilliSeconds(1);
+    }
+
     m_addressReqTimer[dst].Schedule(retry);
     NS_LOG_LOGIC("Scheduled RREQ retry in " << retry.As(Time::S));
 }
@@ -1394,11 +1449,7 @@ RoutingProtocol::RecvRequest(Ptr<Packet> p, Ipv4Address receiver, Ipv4Address sr
      * and RREQ ID. If such a RREQ has been received, the node silently discards the newly received
      * RREQ.
      */
-    if (m_rreqIdCache.IsDuplicate(origin, id))
-    {
-        NS_LOG_DEBUG("Ignoring RREQ due to duplicate");
-        return;
-    }
+    bool isDuplicateRreq = m_rreqIdCache.IsDuplicate(origin, id);
 
     // Increment RREQ hop count
     uint8_t hop = rreqHeader.GetHopCount() + 1;
@@ -1413,13 +1464,51 @@ RoutingProtocol::RecvRequest(Ptr<Packet> p, Ipv4Address receiver, Ipv4Address sr
     {
         residualEnergy = energyContainer->Get(0)->GetRemainingEnergy();
     }
-    double localFitness = CalculateFitness(residualEnergy, hop);
+
+    // FF-AODV Phase 2: get this node's velocity
+    double currentSpeed = 0.0;
+    Ptr<MobilityModel> mobilityModel = thisNode->GetObject<MobilityModel>();
+    if (mobilityModel)
+    {
+        Vector vel = mobilityModel->GetVelocity();
+        currentSpeed = std::sqrt(vel.x * vel.x + vel.y * vel.y + vel.z * vel.z);
+    }
+
+    double localFitness = CalculateFitness(residualEnergy, hop, currentSpeed);
 
     // Take the minimum fitness along the path (weakest link)
     double incomingFitness = rreqHeader.GetPathFitness();
     double pathFitness = (incomingFitness == 0.0) ? localFitness
                                                    : std::min(incomingFitness, localFitness);
     rreqHeader.SetPathFitness(pathFitness);
+
+    // FF-AODV Phase 2: track max velocity along path (worst-case mobility)
+    double incomingVelocity = rreqHeader.GetVelocity();
+    double pathVelocity = std::max(incomingVelocity, currentSpeed);
+    rreqHeader.SetVelocity(pathVelocity);
+
+    // FF-AODV: allow duplicate RREQs only when they improve path fitness.
+    // This enables better (possibly longer) energy-aware alternatives to be
+    // considered instead of always locking onto the first-arriving request.
+    if (isDuplicateRreq)
+    {
+        RoutingTableEntry existingToOrigin;
+        if (m_routingTable.LookupRoute(origin, existingToOrigin))
+        {
+            if (pathFitness <= existingToOrigin.GetFitness())
+            {
+                NS_LOG_DEBUG("Ignoring duplicate RREQ due to non-improving fitness");
+                return;
+            }
+            NS_LOG_DEBUG("Processing duplicate RREQ with improved fitness");
+        }
+        else
+        {
+            // Keep the duplicate if no reverse route entry exists yet; this allows
+            // reverse-route creation before applying fitness-based comparisons.
+            NS_LOG_DEBUG("Processing duplicate RREQ without reverse route entry");
+        }
+    }
 
     /*
      *  When the reverse route is created or updated, the following actions on the route are also
@@ -1624,6 +1713,45 @@ RoutingProtocol::SendReply(const RreqHeader& rreqHeader, const RoutingTableEntry
                           /*dstSeqNo=*/m_seqNo,
                           /*origin=*/toOrigin.GetDestination(),
                           /*lifetime=*/m_myRouteTimeout);
+
+    // Seed RREP metrics from the discovered RREQ path so the destination-side
+    // contribution is not lost before the first RecvReply() hop.
+    double replyFitness = rreqHeader.GetPathFitness();
+    double replyVelocity = rreqHeader.GetVelocity();
+
+    // Backward-compatible fallback for packets that do not carry FF-AODV fields.
+    if (replyFitness == 0.0 || replyVelocity == 0.0)
+    {
+        Ptr<Node> thisNode = m_ipv4->GetObject<Node>();
+
+        double residualEnergy = m_initialEnergy;
+        Ptr<EnergySourceContainer> energyContainer = thisNode->GetObject<EnergySourceContainer>();
+        if (energyContainer && energyContainer->GetN() > 0)
+        {
+            residualEnergy = energyContainer->Get(0)->GetRemainingEnergy();
+        }
+
+        double currentSpeed = 0.0;
+        Ptr<MobilityModel> mobilityModel = thisNode->GetObject<MobilityModel>();
+        if (mobilityModel)
+        {
+            Vector vel = mobilityModel->GetVelocity();
+            currentSpeed = std::sqrt(vel.x * vel.x + vel.y * vel.y + vel.z * vel.z);
+        }
+
+        if (replyFitness == 0.0)
+        {
+            replyFitness = CalculateFitness(residualEnergy, 1, currentSpeed);
+        }
+        if (replyVelocity == 0.0)
+        {
+            replyVelocity = currentSpeed;
+        }
+    }
+
+    rrepHeader.SetPathFitness(replyFitness);
+    rrepHeader.SetVelocity(replyVelocity);
+
     Ptr<Packet> packet = Create<Packet>();
     SocketIpTtlTag tag;
     tag.SetTtl(toOrigin.GetHop());
@@ -1642,12 +1770,41 @@ RoutingProtocol::SendReplyByIntermediateNode(RoutingTableEntry& toDst,
                                              bool gratRep)
 {
     NS_LOG_FUNCTION(this);
+
+    Ptr<Node> thisNode = m_ipv4->GetObject<Node>();
+
+    double residualEnergy = m_initialEnergy;
+    Ptr<EnergySourceContainer> energyContainer = thisNode->GetObject<EnergySourceContainer>();
+    if (energyContainer && energyContainer->GetN() > 0)
+    {
+        residualEnergy = energyContainer->Get(0)->GetRemainingEnergy();
+    }
+
+    double currentSpeed = 0.0;
+    Ptr<MobilityModel> mobilityModel = thisNode->GetObject<MobilityModel>();
+    if (mobilityModel)
+    {
+        Vector vel = mobilityModel->GetVelocity();
+        currentSpeed = std::sqrt(vel.x * vel.x + vel.y * vel.y + vel.z * vel.z);
+    }
+
     RrepHeader rrepHeader(/*prefixSize=*/0,
                           /*hopCount=*/toDst.GetHop(),
                           /*dst=*/toDst.GetDestination(),
                           /*dstSeqNo=*/toDst.GetSeqNo(),
                           /*origin=*/toOrigin.GetDestination(),
                           /*lifetime=*/toDst.GetLifeTime());
+
+    double replyFitness = toDst.GetFitness();
+    if (replyFitness == 0.0)
+    {
+        uint8_t hopForFitness = std::max<uint8_t>(1, toDst.GetHop());
+        replyFitness = CalculateFitness(residualEnergy, hopForFitness, currentSpeed);
+    }
+    rrepHeader.SetPathFitness(replyFitness);
+    // Cached routes do not store max path velocity; seed with local speed.
+    rrepHeader.SetVelocity(currentSpeed);
+
     /* If the node we received a RREQ for is a neighbor we are
      * probably facing a unidirectional link... Better request a RREP-ack
      */
@@ -1685,6 +1842,16 @@ RoutingProtocol::SendReplyByIntermediateNode(RoutingTableEntry& toDst,
                                  /*dstSeqNo=*/toOrigin.GetSeqNo(),
                                  /*origin=*/toDst.GetDestination(),
                                  /*lifetime=*/toOrigin.GetLifeTime());
+
+        double gratFitness = toOrigin.GetFitness();
+        if (gratFitness == 0.0)
+        {
+            uint8_t hopForFitness = std::max<uint8_t>(1, toOrigin.GetHop());
+            gratFitness = CalculateFitness(residualEnergy, hopForFitness, currentSpeed);
+        }
+        gratRepHeader.SetPathFitness(gratFitness);
+        gratRepHeader.SetVelocity(currentSpeed);
+
         Ptr<Packet> packetToDst = Create<Packet>();
         SocketIpTtlTag gratTag;
         gratTag.SetTtl(toDst.GetHop());
@@ -1739,11 +1906,26 @@ RoutingProtocol::RecvReply(Ptr<Packet> p, Ipv4Address receiver, Ipv4Address send
     {
         residualEnergy = energyContainer->Get(0)->GetRemainingEnergy();
     }
-    double localFitness = CalculateFitness(residualEnergy, hop);
+
+    // FF-AODV Phase 2: get this node's velocity
+    double currentSpeed = 0.0;
+    Ptr<MobilityModel> mobilityModel = thisNode->GetObject<MobilityModel>();
+    if (mobilityModel)
+    {
+        Vector vel = mobilityModel->GetVelocity();
+        currentSpeed = std::sqrt(vel.x * vel.x + vel.y * vel.y + vel.z * vel.z);
+    }
+
+    double localFitness = CalculateFitness(residualEnergy, hop, currentSpeed);
     double incomingFitness = rrepHeader.GetPathFitness();
     double replyFitness = (incomingFitness == 0.0) ? localFitness
                                                     : std::min(incomingFitness, localFitness);
     rrepHeader.SetPathFitness(replyFitness);
+
+    // FF-AODV Phase 2: track max velocity along path
+    double incomingVelocity = rrepHeader.GetVelocity();
+    double pathVelocity = std::max(incomingVelocity, currentSpeed);
+    rrepHeader.SetVelocity(pathVelocity);
 
     // If RREP is Hello message
     if (dst == rrepHeader.GetOrigin())

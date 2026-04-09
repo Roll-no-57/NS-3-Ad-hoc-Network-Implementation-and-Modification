@@ -21,7 +21,7 @@ using namespace ns3;
 
 int main(int argc, char *argv[])
 {
-    // ── Tunable parameters ────────────────────────────────────────────────
+    // ── Tunable parameters 
     uint32_t    nNodes     = 20;
     uint32_t    nFlows     = 10;
     uint32_t    pktPerSec  = 100;
@@ -44,7 +44,7 @@ int main(int argc, char *argv[])
     NodeContainer nodes;
     nodes.Create(nNodes);
 
-    // ── Wi-Fi 802.11a ad-hoc (FANET typically uses 5 GHz) ────────────────
+    // ── Wi-Fi 802.11a ad-hoc (FANET typically uses 5 GHz) 
     WifiHelper wifi;
     wifi.SetStandard(WIFI_STANDARD_80211a);
     wifi.SetRemoteStationManager("ns3::ConstantRateWifiManager",
@@ -60,7 +60,7 @@ int main(int argc, char *argv[])
 
     NetDeviceContainer devices = wifi.Install(phy, mac, nodes);
 
-    // ── Energy ────────────────────────────────────────────────────────────
+    // ── Energy 
     BasicEnergySourceHelper energyHelper;
     energyHelper.Set("BasicEnergySourceInitialEnergyJ", DoubleValue(100.0));
     EnergySourceContainer sources = energyHelper.Install(nodes);
@@ -68,7 +68,7 @@ int main(int argc, char *argv[])
     WifiRadioEnergyModelHelper radioEnergyHelper;
     radioEnergyHelper.Install(devices, sources);
 
-    // ── Gauss-Markov mobility (simulates drone movement) ─────────────────
+    // ── Gauss-Markov mobility (simulates drone movement) 
     MobilityHelper mobility;
     double minNodeSpeed = std::max(0.5, speed * (1.0 - speedSpread));
     double maxNodeSpeed = std::max(minNodeSpeed + 0.1, speed * (1.0 + speedSpread));
@@ -90,7 +90,7 @@ int main(int argc, char *argv[])
         "MeanPitch",     StringValue("ns3::ConstantRandomVariable[Constant=0.0]"));
     mobility.Install(nodes);
 
-    // ── FF-AODV Phase 2 (velocity-aware) ─────────────────────────────────
+    //  FF-AODV Phase 2 (velocity-aware) 
     AodvHelper aodv;
     aodv.Set("Alpha",         DoubleValue(0.5));
     aodv.Set("Beta",          DoubleValue(0.3));
@@ -106,7 +106,7 @@ int main(int argc, char *argv[])
     address.SetBase("10.1.3.0", "255.255.255.0");
     Ipv4InterfaceContainer interfaces = address.Assign(devices);
 
-    // ── Traffic ───────────────────────────────────────────────────────────
+    //  Traffic 
     uint16_t port     = 9;
     uint32_t pktSize  = 512;
     double   dataRate = static_cast<double>(pktPerSec) * pktSize * 8; // bps
@@ -137,14 +137,14 @@ int main(int argc, char *argv[])
     clientApps.Start(Seconds(2.0));
     clientApps.Stop(Seconds(simTime - 1.0));
 
-    // ── Flow Monitor ──────────────────────────────────────────────────────
+    // ── Flow Monitor ──────
     FlowMonitorHelper flowmonHelper;
     Ptr<FlowMonitor> monitor = flowmonHelper.InstallAll();
 
     Simulator::Stop(Seconds(simTime));
     Simulator::Run();
 
-    // ── Metrics ───────────────────────────────────────────────────────────
+    // ── Metrics 
     monitor->CheckForLostPackets();
     FlowMonitor::FlowStatsContainer stats = monitor->GetFlowStats();
 

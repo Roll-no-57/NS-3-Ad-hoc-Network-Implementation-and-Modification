@@ -25,7 +25,7 @@ using namespace ns3;
 
 int main(int argc, char *argv[])
 {
-    // ── Tunable parameters ────────────────────────────────────────────────
+    // ── Tunable parameters 
     uint32_t    nNodes     = 20;
     uint32_t    nFlows     = 10;
     uint32_t    pktPerSec  = 100;
@@ -44,7 +44,7 @@ int main(int argc, char *argv[])
 
     double sideLength = areaFactor * txRange;   // deployment area side (m)
 
-    // ── Nodes ─────────────────────────────────────────────────────────────
+    // ── Nodes 
     NodeContainer nodes;
     nodes.Create(nNodes);
 
@@ -68,7 +68,7 @@ int main(int argc, char *argv[])
 
     NetDeviceContainer devices = wifi.Install(phy, mac, nodes);
 
-    // ── Energy model ──────────────────────────────────────────────────────
+    // ── Energy model ──────
     BasicEnergySourceHelper energyHelper;
     energyHelper.Set("BasicEnergySourceInitialEnergyJ", DoubleValue(100.0));
     EnergySourceContainer sources = energyHelper.Install(nodes);
@@ -76,7 +76,7 @@ int main(int argc, char *argv[])
     WifiRadioEnergyModelHelper radioEnergyHelper;
     radioEnergyHelper.Install(devices, sources);
 
-    // ── Static mobility ───────────────────────────────────────────────────
+    // ── Static mobility ───
     MobilityHelper mobility;
     mobility.SetPositionAllocator(
         "ns3::RandomRectanglePositionAllocator",
@@ -87,7 +87,7 @@ int main(int argc, char *argv[])
     mobility.SetMobilityModel("ns3::ConstantPositionMobilityModel");
     mobility.Install(nodes);
 
-    // ── Routing: FF-AODV Phase 1 (no velocity term) ───────────────────────
+    // ── Routing: FF-AODV Phase 1 (no velocity term) 
     AodvHelper aodv;
     aodv.Set("Alpha",         DoubleValue(0.6));
     aodv.Set("Beta",          DoubleValue(0.4));
@@ -103,7 +103,7 @@ int main(int argc, char *argv[])
     address.SetBase("10.1.2.0", "255.255.255.0");
     Ipv4InterfaceContainer interfaces = address.Assign(devices);
 
-    // ── UDP traffic flows ─────────────────────────────────────────────────
+    // ── UDP traffic flows ─
     uint16_t port     = 9;
     uint32_t pktSize  = 80;   // 802.15.4 max useful payload ≈ 80 bytes
     double   dataRate = static_cast<double>(pktPerSec) * pktSize * 8; // bps
@@ -134,14 +134,14 @@ int main(int argc, char *argv[])
     clientApps.Start(Seconds(2.0));
     clientApps.Stop(Seconds(simTime - 1.0));
 
-    // ── Flow Monitor ──────────────────────────────────────────────────────
+    // ── Flow Monitor ──────
     FlowMonitorHelper flowmonHelper;
     Ptr<FlowMonitor> monitor = flowmonHelper.InstallAll();
 
     Simulator::Stop(Seconds(simTime));
     Simulator::Run();
 
-    // ── Metrics ───────────────────────────────────────────────────────────
+    // ── Metrics ───────────
     monitor->CheckForLostPackets();
     Ptr<Ipv4FlowClassifier> classifier =
         DynamicCast<Ipv4FlowClassifier>(flowmonHelper.GetClassifier());
@@ -168,7 +168,7 @@ int main(int argc, char *argv[])
     double pdrOp    = (totalTx > 0) ? (totalDrop / totalTx) * 100.0 : 0.0;
     double avgDelay = (flowCount > 0) ? totalDelay / flowCount * 1000.0 : 0.0; // ms
 
-    // ── Energy consumed ───────────────────────────────────────────────────
+    // ── Energy consumed ───
     double totalEnergy = 0.0;
     for (uint32_t i = 0; i < nNodes; i++)
     {
@@ -178,7 +178,7 @@ int main(int argc, char *argv[])
             totalEnergy += 100.0 - src->GetRemainingEnergy();
     }
 
-    // ── CSV output ────────────────────────────────────────────────────────
+    // ── CSV output ────────
     std::ofstream out(outputFile, std::ios::app);
     if (out.is_open())
     {
